@@ -1,0 +1,13 @@
+{
+    "autodeskProduct": "Fusion360",
+    "type": "addin",
+    "id": "house79.FurnitureAI",
+    "author": "House79",
+    "description": {
+        "": "Add-in per progettazione parametrica di mobili in legno con integrazione IA locale e post-processore Xilog Plus per CNC SCM Record 130TV"
+    },
+    "version": "1.0.0",
+    "runOnStartup": false,
+    "supportedOS": "windows|mac",
+    "editEnabled": true
+}

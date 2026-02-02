@@ -1,0 +1,76 @@
+; ================================================================
+; PROGRAMMA: Mobile_Base_80x90x60
+; Generato da FurnitureAI per SCM Record 130TV (NUM 1050)
+; ================================================================
+; DIMENSIONI PEZZO: L=800.0 W=600.0 T=18.0 mm
+; ================================================================
+
+; Inizializzazione
+G90 ; Programmazione assoluta
+G71 ; Unità in mm
+
+; Foratura Ø8.0 mm (T=3)
+T=3 ; Seleziona utensile
+
+XBO ; Foratura ottimizzata Ø8.0
+  X=50.00 Y=50.00 Z=0.00 P=40.00
+  X=750.00 Y=50.00 Z=0.00 P=40.00
+  X=50.00 Y=550.00 Z=0.00 P=40.00
+  X=750.00 Y=550.00 Z=0.00 P=40.00
+XBOE ; Fine foratura ottimizzata
+
+; Foratura Ø35.0 mm (T=4)
+T=4 ; Seleziona utensile
+
+XBO ; Foratura ottimizzata Ø35.0
+  X=50.00 Y=150.00 Z=0.00 P=13.00
+  X=50.00 Y=450.00 Z=0.00 P=13.00
+XBOE ; Fine foratura ottimizzata
+
+; Foratura Ø5.0 mm (T=1)
+T=1 ; Seleziona utensile
+
+XBO ; Foratura ottimizzata Ø5.0
+  X=32.00 Y=100.00 Z=0.00 P=12.00
+  X=32.00 Y=132.00 Z=0.00 P=12.00
+  X=32.00 Y=164.00 Z=0.00 P=12.00
+  X=32.00 Y=196.00 Z=0.00 P=12.00
+  X=32.00 Y=228.00 Z=0.00 P=12.00
+  X=32.00 Y=260.00 Z=0.00 P=12.00
+  X=32.00 Y=292.00 Z=0.00 P=12.00
+  X=32.00 Y=324.00 Z=0.00 P=12.00
+  X=32.00 Y=356.00 Z=0.00 P=12.00
+  X=32.00 Y=388.00 Z=0.00 P=12.00
+  X=32.00 Y=420.00 Z=0.00 P=12.00
+  X=32.00 Y=452.00 Z=0.00 P=12.00
+  X=32.00 Y=484.00 Z=0.00 P=12.00
+  X=32.00 Y=516.00 Z=0.00 P=12.00
+  X=32.00 Y=548.00 Z=0.00 P=12.00
+XBOE ; Fine foratura ottimizzata
+
+; Fresatura/Contorno (T=102, Ø8.0mm)
+T=102
+
+XGIN ; Inizio lavorazione
+XG0 X=10.00 Y=10.00 ; Posizionamento
+XG1 Z=5.00 ; Discesa
+XL2P X=790.00 Y=10.00 ; Linea
+XL2P X=790.00 Y=590.00 ; Linea
+XL2P X=10.00 Y=590.00 ; Linea
+XL2P X=10.00 Y=10.00 ; Linea
+XG0 Z=0 ; Risalita
+XGOUT ; Fine lavorazione
+
+
+; ================================================================
+; NOTE SICUREZZA
+; ================================================================
+; - Verificare fissaggio pezzo prima di avviare programma
+; - Controllare utensili montati e condizioni
+; - Verificare assenza ostacoli nell'area di lavoro
+; - Utilizzare aspirazione trucioli
+; ================================================================
+
+
+; Fine programma
+M30 ; Stop programma
