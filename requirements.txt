@@ -1,0 +1,7 @@
+# Dipendenze Python per FurnitureAI
+
+# Per integrazione IA locale (opzionale)
+requests>=2.28.0
+
+# Per testing
+# pytest>=7.0.0  # Opzionale, può usare unittest built-in

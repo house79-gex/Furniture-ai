@@ -1,0 +1,45 @@
+; ================================================================
+; PROGRAMMA: Anta_40x80
+; Generato da FurnitureAI per SCM Record 130TV (NUM 1050)
+; ================================================================
+; DIMENSIONI PEZZO: L=400.0 W=800.0 T=18.0 mm
+; ================================================================
+
+; Inizializzazione
+G90 ; Programmazione assoluta
+G71 ; Unità in mm
+
+; Foratura Ø35.0 mm (T=4)
+T=4 ; Seleziona utensile
+
+XBO ; Foratura ottimizzata Ø35.0
+  X=22.00 Y=100.00 Z=0.00 P=13.00
+  X=22.00 Y=700.00 Z=0.00 P=13.00
+XBOE ; Fine foratura ottimizzata
+
+; Fresatura/Contorno (T=102, Ø8.0mm)
+T=102
+
+XGIN ; Inizio lavorazione
+XG0 X=5.00 Y=5.00 ; Posizionamento
+XG1 Z=3.00 ; Discesa
+XL2P X=395.00 Y=5.00 ; Linea
+XL2P X=395.00 Y=795.00 ; Linea
+XL2P X=5.00 Y=795.00 ; Linea
+XL2P X=5.00 Y=5.00 ; Linea
+XG0 Z=0 ; Risalita
+XGOUT ; Fine lavorazione
+
+
+; ================================================================
+; NOTE SICUREZZA
+; ================================================================
+; - Verificare fissaggio pezzo prima di avviare programma
+; - Controllare utensili montati e condizioni
+; - Verificare assenza ostacoli nell'area di lavoro
+; - Utilizzare aspirazione trucioli
+; ================================================================
+
+
+; Fine programma
+M30 ; Stop programma
