@@ -80,6 +80,8 @@ Per abilitare l'integrazione IA, installa il modulo `requests`:
 
 ### 3. Configurazione IA Locale (Opzionale)
 
+**NOTA IMPORTANTE:** L'integrazione IA è completamente **opzionale**. L'add-in funziona perfettamente anche **offline** senza IA configurata. Se l'IA non è disponibile, vengono automaticamente forniti suggerimenti di fallback basati su regole standard.
+
 #### Installazione Ollama
 1. Scarica Ollama da https://ollama.ai
 2. Installa e avvia il servizio
@@ -93,6 +95,19 @@ Per abilitare l'integrazione IA, installa il modulo `requests`:
 2. Clicca **Configura IA**
 3. Inserisci endpoint: `http://localhost:11434` (default Ollama)
 4. Salva configurazione
+
+#### Comportamento IA Stub
+L'add-in include un **sistema di fallback intelligente**:
+- Se l'IA non è disponibile o non risponde entro 2 secondi, vengono usati suggerimenti standard
+- Parsing della descrizione testuale tramite regex (estrae dimensioni, numero ripiani/ante/cassetti)
+- Suggerimenti tecnici basati su best practices dell'industria del mobile
+- **Nessun blocco dell'esecuzione** se l'IA fallisce
+
+Vantaggi del sistema di fallback:
+- Funziona completamente offline
+- Risposta istantanea (nessun timeout)
+- Basato su standard consolidati del settore arredo
+- Nessuna dipendenza da servizi esterni
 
 ## 📖 Utilizzo
 
@@ -256,7 +271,26 @@ Furniture-ai/
 2. **Suggerimenti Tecnici**: Ferramenta, dimensioni, best practices
 3. **Validazione Coerenza**: Analizza parametri per problemi potenziali
 
-## 📝 Esempi
+**Fallback automatico:** Tutte le funzioni sopra sono disponibili anche senza IA, utilizzando parsing basato su regex e regole standard.
+
+## 📝 Esempi e Test
+
+### File di Test
+Nella cartella `examples/` trovi il file `parametri_test.md` con 5 configurazioni di test complete:
+1. **Mobile Base Cucina Standard** (80x90x60, 2 ripiani, 2 ante)
+2. **Pensile Sospeso** (120x80x35, 1 ripiano, 2 ante)
+3. **Mobile Base Minimo** (60x70x50, nessun ripiano)
+4. **Armadio Grande** (200x220x60, 3 ripiani)
+5. **Test Validazione Limiti** (dimensioni minime/massime)
+
+### Test Manuale Rapido
+1. Avvia Fusion 360
+2. Carica add-in FurnitureAI (Scripts and Add-Ins → Add-Ins → Run)
+3. Vai al pannello CREATE → FurnitureAI
+4. Clicca "Wizard Mobili"
+5. Usa parametri default o uno dei test dal file `parametri_test.md`
+6. Clicca OK
+7. Verifica che i componenti vengano creati correttamente
 
 ### Esempio 1: Mobile Base Cucina
 
@@ -291,23 +325,70 @@ Parametri generati:
 ## 🐛 Risoluzione Problemi
 
 ### Add-in non appare in Fusion 360
-- Verifica percorso installazione
-- Controlla permessi cartella
+- Verifica percorso installazione (vedi sezione Installazione)
+- Assicurati che la cartella si chiami esattamente `FurnitureAI`
+- Controlla permessi cartella (deve essere leggibile)
 - Riavvia Fusion 360
+- Controlla il log di Fusion 360 (Help → Text Commands → mostra eventuali errori)
+
+### Errore "mobile creato ma senza geometria"
+- **Risolto nella versione corrente**: la geometria ora viene creata correttamente
+- Se persiste, controlla che i parametri siano nei limiti validi (20-300cm L/H, 20-100cm P)
+- Verifica dimensioni nel browser di Fusion 360
 
 ### Errore importazione moduli
 - Verifica installazione Python dependencies
 - Usa Python incluso in Fusion 360
 
 ### IA non risponde
-- Verifica Ollama/LM Studio sia in esecuzione
-- Controlla endpoint configurato
-- Testa con: `curl http://localhost:11434/api/version`
+- **Comportamento normale:** Se l'IA non è disponibile, vengono usati automaticamente suggerimenti di fallback
+- Non è necessario che l'IA funzioni per usare l'add-in
+- Per verificare endpoint Ollama: `curl http://localhost:11434/api/version`
+- Se vuoi usare l'IA, verifica che Ollama/LM Studio sia in esecuzione
+- Verifica endpoint configurato nel pannello "Configura IA"
+
+### Fori non visibili nel modello
+- **Nota implementazione corrente:** Le funzioni per fori (reggipiano, cerniere, spinatura) sono implementate come stub documentati
+- I fori non vengono effettivamente creati nel modello 3D in questa versione
+- Le posizioni e specifiche sono calcolate e documentate per export futuro
+- Per aggiungere fori reali: necessario implementare face selection e hole features nell'API Fusion 360
 
 ### Codice Xilog non valido
 - Verifica dimensioni pezzo
 - Controlla libreria TLG
 - Valida profondità vs. max_depth utensile
+
+## ⚙️ Stato Implementazione e Limitazioni
+
+### ✅ Funzionalità Operative (v1.0)
+- ✅ Wizard parametrico completo con UI in italiano
+- ✅ Generazione geometria 3D base (fianchi, top, base, ripiani, schienale, zoccolo)
+- ✅ Validazione parametri (dimensioni, spessori, numero ripiani)
+- ✅ Sistema configurazione (salvataggio/caricamento config locale)
+- ✅ AI client con fallback intelligente (funziona offline)
+- ✅ Parsing descrizioni testuali (con e senza IA)
+- ✅ Suggerimenti tecnici standard (ferramenta, dimensioni)
+- ✅ Logging verso console Fusion 360
+- ✅ Post-processore Xilog Plus (separato, già funzionante)
+
+### 🚧 Limitazioni Correnti
+- ⚠️ **Fori non creati fisicamente**: Le funzioni `add_shelf_holes`, `add_hinge_holes`, `add_dowel_holes` calcolano le posizioni ma non creano i fori nel modello 3D. Questo richiede implementazione complessa di face selection nell'API Fusion 360.
+- ⚠️ **Ante e cassetti**: I parametri sono accettati ma i componenti non vengono generati (futura implementazione)
+- ⚠️ **Sistema 32mm**: Validazione presente, ma i fori non sono creati fisicamente
+
+### 🎯 Roadmap Futura
+1. Implementazione completa fori 3D (hole features con face selection)
+2. Generazione ante battenti con cerniere posizionate
+3. Generazione cassetti con guide
+4. Integrazione diretta con post-processore Xilog
+5. Export automatico file .xilog da wizard
+6. Preview 3D in tempo reale durante modifica parametri
+
+### 📌 Note per Sviluppatori
+- Il codice è strutturato per facilitare l'aggiunta dei fori reali
+- Le posizioni sono già calcolate nelle funzioni stub
+- Per implementare fori: vedere API `HoleFeature` di Fusion 360
+- Esempio workflow: sketch su faccia → hole feature → pattern se necessario
 
 ## 🤝 Contributi
 
