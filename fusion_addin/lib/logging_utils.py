@@ -3,7 +3,12 @@ Utility per logging in Fusion 360
 Supporta logging verso la console di testo di Fusion e output standard
 """
 
-import adsk.core
+try:
+    import adsk.core
+    _ADSK_AVAILABLE = True
+except ImportError:
+    _ADSK_AVAILABLE = False
+
 import sys
 from datetime import datetime
 from typing import Optional
@@ -20,12 +25,15 @@ class FusionLogger:
             name: Nome del logger (prefix per i messaggi)
         """
         self.name = name
-        self._ui: Optional[adsk.core.UserInterface] = None
+        self._ui: Optional['adsk.core.UserInterface'] = None
         
-        try:
-            app = adsk.core.Application.get()
-            self._ui = app.userInterface
-        except:
+        if _ADSK_AVAILABLE:
+            try:
+                app = adsk.core.Application.get()
+                self._ui = app.userInterface
+            except:
+                self._ui = None
+        else:
             self._ui = None
     
     def _format_message(self, level: str, message: str) -> str:
