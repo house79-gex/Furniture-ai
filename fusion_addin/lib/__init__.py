@@ -7,11 +7,13 @@ from . import furniture_wizard
 from . import furniture_generator
 from . import ai_client
 from . import config_manager
+from . import logging_utils
 
 __all__ = [
     'ui_manager',
     'furniture_wizard', 
     'furniture_generator',
     'ai_client',
-    'config_manager'
+    'config_manager',
+    'logging_utils'
 ]

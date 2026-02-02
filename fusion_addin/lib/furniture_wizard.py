@@ -147,12 +147,18 @@ class FurnitureWizardExecuteHandler(adsk.core.CommandEventHandler):
             if params.get('usa_ia') and params.get('descrizione_mobile'):
                 try:
                     config = config_manager.load_config()
-                    ai = ai_client.AIClient(config.get('ai_endpoint', 'http://localhost:11434'))
+                    ai = ai_client.AIClient(config.get('ai_endpoint', 'http://localhost:11434'), 
+                                           enable_fallback=True)
+                    
+                    if not ai.is_available():
+                        ui.messageBox('IA non disponibile - usando suggerimenti di fallback standard')
+                    
                     suggestions = ai.get_furniture_suggestions(params['descrizione_mobile'])
                     if suggestions:
                         ui.messageBox('Suggerimenti IA:\n{}'.format(suggestions))
                 except Exception as e:
-                    ui.messageBox('Errore IA (continuando con parametri manuali):\n{}'.format(str(e)))
+                    # Non bloccare l'esecuzione se l'IA fallisce
+                    ui.messageBox('Nota: IA non disponibile (continuando con parametri manuali)')
             
             # Genera mobile
             result = furniture_generator.generate_furniture(design, params)
