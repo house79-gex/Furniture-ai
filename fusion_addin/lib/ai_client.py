@@ -226,16 +226,16 @@ Usa standard italiani: cucina H=85-90 P=60, pensile H=70 P=35""".format(descript
         import re
         result = {'confidence': 0.5}
         
-        # Pattern: "80cm", "L80", "larghezza 80"
-        larg = re.search(r'(?:larg|L)[:\s]*(\d+(?:\.\d+)?)\s*cm', description, re.I)
+        # Pattern: "80cm", "L80", "L 80", "larghezza 80", "largo 80"
+        larg = re.search(r'(?:largo?|L)[:\s]*(\d+(?:\.\d+)?)(?:\s*cm)?', description, re.I)
         if larg:
             result['larghezza'] = float(larg.group(1))
         
-        alt = re.search(r'(?:alt|H)[:\s]*(\d+(?:\.\d+)?)\s*cm', description, re.I)
+        alt = re.search(r'(?:alto?|H)[:\s]*(\d+(?:\.\d+)?)(?:\s*cm)?', description, re.I)
         if alt:
             result['altezza'] = float(alt.group(1))
         
-        prof = re.search(r'(?:prof|P)[:\s]*(\d+(?:\.\d+)?)\s*cm', description, re.I)
+        prof = re.search(r'(?:profond[oi]?|P)[:\s]*(\d+(?:\.\d+)?)(?:\s*cm)?', description, re.I)
         if prof:
             result['profondita'] = float(prof.group(1))
         

@@ -1,9 +1,14 @@
 """
 Generatore Lista Taglio Automatica
 """
-import adsk.core
-import adsk.fusion
 from typing import List, Dict
+
+try:
+    import adsk.core
+    import adsk.fusion
+    _HAS_ADSK = True
+except ImportError:
+    _HAS_ADSK = False
 
 
 class CutListGenerator:
