@@ -34,7 +34,7 @@ class AIClient:
             return False
         
         try:
-            response = requests.get(f'{self.endpoint}/api/version', timeout=2)
+            response = requests.get('{}/api/version'.format(self.endpoint), timeout=2)
             return response.status_code == 200
         except:
             return False
@@ -73,7 +73,7 @@ Fornisci suggerimenti su:
 Rispondi in italiano in modo conciso (max 200 parole)."""
 
             response = requests.post(
-                f'{self.endpoint}/api/generate',
+                '{}/api/generate'.format(self.endpoint),
                 json={
                     'model': self.model,
                     'prompt': prompt,
@@ -309,7 +309,7 @@ Restituisci SOLO un oggetto JSON con questi campi (usa valori di default se non 
 Rispondi SOLO con JSON valido, niente altro."""
 
             response = requests.post(
-                f'{self.endpoint}/api/generate',
+                '{}/api/generate'.format(self.endpoint),
                 json={
                     'model': self.model,
                     'prompt': prompt,
@@ -426,7 +426,7 @@ Parametri:
 Rispondi in italiano in modo conciso (max 100 parole) SOLO se ci sono problemi o suggerimenti importanti, altrimenti rispondi "OK"."""
 
             response = requests.post(
-                f'{self.endpoint}/api/generate',
+                '{}/api/generate'.format(self.endpoint),
                 json={
                     'model': self.model,
                     'prompt': prompt,
