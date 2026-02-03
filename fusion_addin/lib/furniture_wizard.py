@@ -96,6 +96,24 @@ class FurnitureWizardCommand(adsk.core.CommandCreatedEventHandler):
             ante_inputs.addIntegerSpinnerCommandInput('num_ante', 'N. ante', 0, 10, 1, 0)
             ante_inputs.addIntegerSpinnerCommandInput('num_cassetti', 'N. cassetti', 0, 10, 1, 0)
             
+            # Schienale
+            group_schienale = inputs.addGroupCommandInput('gruppo_schienale', 'Schienale')
+            group_schienale.isExpanded = False
+            schienale_inputs = group_schienale.children
+            
+            dropdown_schienale = schienale_inputs.addDropDownCommandInput(
+                'tipo_schienale',
+                'Montaggio schienale',
+                adsk.core.DropDownStyles.LabeledIconDropDownStyle
+            )
+            dropdown_schienale.listItems.add('A filo dietro', True)
+            dropdown_schienale.listItems.add('Incastrato (scanalatura 10mm)', False)
+            dropdown_schienale.listItems.add('Arretrato custom', False)
+            
+            schienale_inputs.addValueInput('arretramento_schienale', 'Arretramento (se custom)', 'mm',
+                                          adsk.core.ValueInput.createByReal(0.8))
+            schienale_inputs.itemById('arretramento_schienale').isEnabled = False
+            
             # Zoccolo
             group_zoccolo = inputs.addGroupCommandInput('gruppo_zoccolo', 'Zoccolo')
             group_zoccolo.isExpanded = False
@@ -214,6 +232,15 @@ class FurnitureWizardExecuteHandler(adsk.core.CommandEventHandler):
         # Zoccolo
         params['altezza_zoccolo'] = inputs.itemById('altezza_zoccolo').value if inputs.itemById('altezza_zoccolo') else 10.0
         
+        # Schienale
+        tipo_schienale_input = inputs.itemById('tipo_schienale')
+        if tipo_schienale_input:
+            params['tipo_schienale'] = tipo_schienale_input.selectedItem.name
+        else:
+            params['tipo_schienale'] = 'A filo dietro'
+        
+        params['arretramento_schienale'] = inputs.itemById('arretramento_schienale').value if inputs.itemById('arretramento_schienale') else 0.8
+        
         # IA
         desc_input = inputs.itemById('descrizione_mobile')
         if desc_input:
@@ -238,6 +265,12 @@ class FurnitureWizardInputChangedHandler(adsk.core.InputChangedEventHandler):
                 altezza_zoccolo = inputs.itemById('altezza_zoccolo')
                 if altezza_zoccolo:
                     altezza_zoccolo.isEnabled = changed_input.value
+            
+            # Abilita/disabilita arretramento custom in base al tipo schienale
+            if changed_input.id == 'tipo_schienale':
+                arretramento = inputs.itemById('arretramento_schienale')
+                if arretramento:
+                    arretramento.isEnabled = (changed_input.selectedItem.name == 'Arretrato custom')
                     
         except:
             pass
