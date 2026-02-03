@@ -26,21 +26,16 @@ def initialize(ui: adsk.core.UserInterface, handlers: List):
         furniture_panel = create_tab.toolbarPanels.itemById('FurnitureAIPanel')
         if not furniture_panel:
             furniture_panel = create_tab.toolbarPanels.add('FurnitureAIPanel', 'FurnitureAI')
-        # Debug (RIMUOVI dopo aver risolto)
-ui.messageBox(f'Resources folder: {resources_folder}\nExists: {os.path.exists(resources_folder)}\nIcon path: {icon_path}')
+        
         # GESTIONE ICONA - Percorso corretto
-        # __file__ è il percorso di ui_manager.py (in fusion_addin/lib/)
-        # Dobbiamo andare su di 1 livello per arrivare a fusion_addin/, poi entrare in resources/
-        current_file = os.path.abspath(__file__)  # Percorso assoluto ui_manager.py
-        lib_folder = os.path.dirname(current_file)  # fusion_addin/lib/
-        addon_folder = os.path.dirname(lib_folder)  # fusion_addin/
+        current_file = os.path.abspath(__file__)
+        lib_folder = os.path.dirname(current_file)
+        addon_folder = os.path.dirname(lib_folder)
         resources_folder = os.path.join(addon_folder, 'resources')
         
         # Verifica esistenza cartella resources
         icon_path = ''
         if os.path.exists(resources_folder):
-            # Fusion cerca automaticamente _16.png, _32.png, _64.png aggiungendo il suffisso
-            # Quindi passiamo il path senza estensione: "path/to/furniture_icon"
             icon_base_path = os.path.join(resources_folder, 'furniture_icon')
             
             # Verifica che almeno un'icona esista
@@ -56,7 +51,7 @@ ui.messageBox(f'Resources folder: {resources_folder}\nExists: {os.path.exists(re
                 'FurnitureWizardCmd',
                 'Wizard Mobili',
                 'Crea mobili parametrici con wizard guidato',
-                icon_path  # Stringa vuota se nessuna icona trovata
+                icon_path
             )
         
         # Crea handler per il comando
@@ -72,18 +67,11 @@ ui.messageBox(f'Resources folder: {resources_folder}\nExists: {os.path.exists(re
         # Aggiungi comando configurazione IA
         config_cmd_def = ui.commandDefinitions.itemById('FurnitureAIConfigCmd')
         if not config_cmd_def:
-            # Usa icona generica settings se disponibile
-            config_icon = ''
-            if os.path.exists(resources_folder):
-                config_icon_path = os.path.join(resources_folder, 'settings_icon')
-                if os.path.exists(config_icon_path + '_16.png'):
-                    config_icon = config_icon_path
-            
             config_cmd_def = ui.commandDefinitions.addButtonDefinition(
                 'FurnitureAIConfigCmd',
                 'Configura IA',
                 'Configura endpoint IA locale (Ollama/LM Studio)',
-                config_icon
+                ''
             )
         
         config_control = furniture_panel.controls.itemById('FurnitureAIConfigCmd')
@@ -98,7 +86,6 @@ ui.messageBox(f'Resources folder: {resources_folder}\nExists: {os.path.exists(re
 def cleanup(ui: adsk.core.UserInterface, handlers: List):
     """Pulisce l'interfaccia utente dell'add-in"""
     try:
-        # Rimuovi pannello da entrambi i tab possibili
         for tab_id in ['SolidTab', 'ToolsTab']:
             tab = ui.allToolbarTabs.itemById(tab_id)
             if tab:
@@ -106,7 +93,6 @@ def cleanup(ui: adsk.core.UserInterface, handlers: List):
                 if furniture_panel:
                     furniture_panel.deleteMe()
         
-        # Rimuovi definizioni comandi
         cmd_def = ui.commandDefinitions.itemById('FurnitureWizardCmd')
         if cmd_def:
             cmd_def.deleteMe()
@@ -115,7 +101,6 @@ def cleanup(ui: adsk.core.UserInterface, handlers: List):
         if config_cmd_def:
             config_cmd_def.deleteMe()
         
-        # Pulisci handlers
         handlers.clear()
         
     except Exception as e:
