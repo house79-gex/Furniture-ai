@@ -15,24 +15,34 @@ except ImportError:
 class AIClient:
     """Client per comunicare con endpoint IA locale (non bloccante)"""
     
-    def __init__(self, endpoint: str = 'http://localhost:11434', enable_fallback: bool = True):
+    def __init__(self, endpoint: str = 'http://localhost:1234', model: str = None, enable_fallback: bool = True):
         """
         Inizializza client IA
         
         Args:
-            endpoint: URL endpoint IA locale (es. Ollama)
+            endpoint: URL endpoint IA locale (es. Ollama o LM Studio)
+            model: Nome del modello (default da config o llama-3.2-3b-instruct)
             enable_fallback: Se True, usa suggerimenti di fallback se IA non disponibile
         """
         self.endpoint = endpoint.rstrip('/')
-        self.model = 'llama3'  # Modello default
+        self.model = model or 'llama-3.2-3b-instruct'  # Default LM Studio model
         self.enable_fallback = enable_fallback
         self._ai_available = self._check_availability()
     
     def _check_availability(self) -> bool:
-        """Verifica se l'endpoint IA è disponibile (non bloccante)"""
+        """Verifica se l'endpoint IA è disponibile (supporta sia Ollama che LM Studio)"""
         if requests is None:
             return False
         
+        # Prova endpoint LM Studio prima
+        try:
+            response = requests.get('{}/v1/models'.format(self.endpoint), timeout=2)
+            if response.status_code == 200:
+                return True
+        except:
+            pass
+        
+        # Prova endpoint Ollama come fallback
         try:
             response = requests.get('{}/api/version'.format(self.endpoint), timeout=2)
             return response.status_code == 200

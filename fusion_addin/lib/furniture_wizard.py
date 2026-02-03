@@ -228,8 +228,11 @@ class FurnitureWizardExecuteHandler(adsk.core.CommandEventHandler):
             if params.get('usa_ia') and params.get('descrizione_mobile'):
                 try:
                     config = config_manager.load_config()
-                    ai = ai_client.AIClient(config.get('ai_endpoint', 'http://localhost:11434'), 
-                                           enable_fallback=True)
+                    ai = ai_client.AIClient(
+                        config.get('ai_endpoint', 'http://localhost:1234'),
+                        model=config.get('ai_model', 'llama-3.2-3b-instruct'),
+                        enable_fallback=True
+                    )
                     
                     if not ai.is_available():
                         ui.messageBox('IA non disponibile - usando suggerimenti di fallback standard')
@@ -413,8 +416,11 @@ class FurnitureWizardInputChangedHandler(adsk.core.InputChangedEventHandler):
                     try:
                         # Usa AI Client per parsare la descrizione
                         config = config_manager.load_config()
-                        ai = ai_client.AIClient(config.get('ai_endpoint', 'http://localhost:11434'), 
-                                               enable_fallback=True)
+                        ai = ai_client.AIClient(
+                            config.get('ai_endpoint', 'http://localhost:1234'),
+                            model=config.get('ai_model', 'llama-3.2-3b-instruct'),
+                            enable_fallback=True
+                        )
                         
                         params = ai.parse_furniture_description(descrizione_input.text)
                         

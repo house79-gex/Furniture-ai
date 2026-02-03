@@ -150,6 +150,11 @@ def create_horizontal_panel_XY(component: adsk.fusion.Component, name: str,
             adsk.core.Point3D.create(x + width, y + depth, 0)
         )
         
+        # Verifica profili
+        if sketch.profiles.count == 0:
+            logger.error("Profilo vuoto per pannello {}: sketch non ha generato profili chiusi".format(name))
+            return None
+        
         # Estrusione verso l'alto (direzione Z)
         profile = sketch.profiles.item(0)
         extrudes = component.features.extrudeFeatures
@@ -168,6 +173,8 @@ def create_horizontal_panel_XY(component: adsk.fusion.Component, name: str,
         extrude = extrudes.add(extrude_input)
         body = extrude.bodies.item(0)
         body.name = name
+        
+        logger.info("Pannello {} creato: {}x{}x{} cm @ ({},{},{})".format(name, width, depth, thickness, x, y, z))
         
         return body
         
@@ -210,6 +217,11 @@ def create_vertical_panel_YZ(component: adsk.fusion.Component, name: str,
             adsk.core.Point3D.create(0, depth, height)
         )
         
+        # Verifica profili
+        if sketch.profiles.count == 0:
+            logger.error("Profilo vuoto per pannello {}: sketch YZ non ha generato profili chiusi".format(name))
+            return None
+        
         # 3. Estrusione lungo X
         profile = sketch.profiles.item(0)
         extrudes = component.features.extrudeFeatures
@@ -221,6 +233,8 @@ def create_vertical_panel_YZ(component: adsk.fusion.Component, name: str,
         extrude = extrudes.add(extrude_input)
         body = extrude.bodies.item(0)
         body.name = name
+        
+        logger.info("Pannello verticale YZ {} creato: {}x{} cm (sp={}) @ x={}".format(name, depth, height, thickness, x_pos))
         
         # 4. Traslazione per offset Y,Z se necessario
         if y_offset != 0 or z_offset != 0:
@@ -273,6 +287,11 @@ def create_vertical_panel_XZ(component: adsk.fusion.Component, name: str,
             adsk.core.Point3D.create(width, 0, height)
         )
         
+        # Verifica profili
+        if sketch.profiles.count == 0:
+            logger.error("Profilo vuoto per pannello {}: sketch XZ non ha generato profili chiusi".format(name))
+            return None
+        
         # 3. Estrusione lungo Y
         profile = sketch.profiles.item(0)
         extrudes = component.features.extrudeFeatures
@@ -284,6 +303,8 @@ def create_vertical_panel_XZ(component: adsk.fusion.Component, name: str,
         extrude = extrudes.add(extrude_input)
         body = extrude.bodies.item(0)
         body.name = name
+        
+        logger.info("Pannello verticale XZ {} creato: {}x{} cm (sp={}) @ y={}".format(name, width, height, thickness, y_pos))
         
         # 4. Traslazione per offset X,Z se necessario
         if x_offset != 0 or z_offset != 0:

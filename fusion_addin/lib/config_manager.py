@@ -8,8 +8,8 @@ from typing import Dict, Any
 
 
 _DEFAULT_CONFIG = {
-    'ai_endpoint': 'http://localhost:11434',
-    'ai_model': 'llama3',
+    'ai_endpoint': 'http://localhost:1234',  # LM Studio default endpoint
+    'ai_model': 'llama-3.2-3b-instruct',     # LM Studio default model
     'tlg_path': '',
     'xilog_output_path': ''
 }
@@ -32,7 +32,7 @@ def get_config_path() -> str:
 
 
 def load_config() -> Dict[str, Any]:
-    """Carica configurazione da file"""
+    """Carica configurazione da file, crea file con default se non esiste"""
     config_path = get_config_path()
     
     try:
@@ -41,10 +41,17 @@ def load_config() -> Dict[str, Any]:
                 config = json.load(f)
                 # Merge con default per eventuali nuovi campi
                 return {**_DEFAULT_CONFIG, **config}
+        else:
+            # Crea file config con default se non esiste
+            save_config(_DEFAULT_CONFIG)
+            return _DEFAULT_CONFIG.copy()
     except:
-        pass
-    
-    return _DEFAULT_CONFIG.copy()
+        # In caso di errore, prova a salvare config default
+        try:
+            save_config(_DEFAULT_CONFIG)
+        except:
+            pass
+        return _DEFAULT_CONFIG.copy()
 
 
 def save_config(config: Dict[str, Any]) -> bool:
