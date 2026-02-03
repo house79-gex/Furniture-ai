@@ -1,0 +1,4 @@
+{
+  "ai_endpoint": "http://127.0.0.1:1234/v1",
+  "model": "llama-3.2-3b-instruct"
+}
