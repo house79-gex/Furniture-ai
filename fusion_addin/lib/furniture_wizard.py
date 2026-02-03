@@ -184,6 +184,22 @@ class FurnitureWizardCommand(adsk.core.CommandCreatedEventHandler):
             group_ia.isExpanded = False  # COLLASSATO
             ia_inputs = group_ia.children
             
+            # Status IA
+            config = config_manager.load_config()
+            ai = ai_client.AIClient(
+                config.get('ai_endpoint', 'http://localhost:1234'),
+                model=config.get('ai_model', 'llama-3.2-3b-instruct'),
+                enable_fallback=False
+            )
+            
+            status_text = 'IA disponibile ✓' if ai.is_available() else 'IA non disponibile (fallback attivo)'
+            status_color = '' if ai.is_available() else ' - Configura con "Configura IA"'
+            
+            ia_status = ia_inputs.addTextBoxCommandInput('ia_status', '', 
+                                                        status_text + status_color,
+                                                        1, True)
+            ia_status.isReadOnly = True
+            
             ia_inputs.addTextBoxCommandInput('descrizione_mobile', 'Descrivi il mobile', 
                                             'Es: mobile base cucina largo 80cm con 2 ripiani e 2 ante', 
                                             3, False)
