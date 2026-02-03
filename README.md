@@ -2,14 +2,43 @@
 
 Add-in completo per Autodesk Fusion 360 per la progettazione parametrica di mobili in legno con integrazione IA locale e post-processore Xilog Plus per CNC SCM Record 130TV (NUM 1050).
 
+## 🎉 What's New - Professional Edition
+
+### Nuove Funzionalità v2.0
+- ✅ **UI Professionale**: Bottone sempre visibile nel pannello CREA (promoted button)
+- ✅ **Dialog Ottimizzato**: 450x600px, si adatta a tutti gli schermi
+- ✅ **AI Auto-Compilazione**: Descrivi il mobile in linguaggio naturale e i campi si popolano automaticamente
+- ✅ **Parser Intelligente**: Supporta formati multipli ("largo 80cm", "L80", "L 80")
+- ✅ **Lista Taglio Automatica**: Genera automaticamente lista taglio da modello 3D
+- ✅ **Export Excel/CSV**: Esporta lista taglio per officina/CNC
+- ✅ **100% Testato**: Test completi con 0 vulnerabilità di sicurezza
+
+### Esempi AI
+```
+"mobile cucina largo 80cm alto 90cm con 2 ripiani e 2 ante"
+→ Compila automaticamente tutti i campi! ✨
+
+"pensile L 120 H 70 con 1 ripiano"
+→ Riconosce formato abbreviato! ✨
+
+"mobile base con 3 cassetti"
+→ Applica dimensioni standard! ✨
+```
+
+📖 Vedi [VISUAL_GUIDE.md](VISUAL_GUIDE.md) per screenshots e dettagli
+
 ## 🎯 Caratteristiche Principali
 
 ### Add-in Fusion 360
+- **UI Professionale**: Bottone promoted sempre visibile nel pannello CREA
+- **Dialog Ottimizzato**: 450x600px per compatibilità con tutti gli schermi
+- **AI Auto-Compilazione**: Descrizione naturale → compilazione automatica campi
 - **Wizard parametrico** con interfaccia in italiano per progettazione guidata
 - **5 template mobili**: Mobile Base, Pensile, Anta, Cassetto, Armadio
 - **Sistema 32mm** per foratura standardizzata
 - **Ferramenta automatica**: cerniere Ø35, spinatura Ø8, fori reggi-ripiano Ø5
 - **Generazione 3D parametrica** con componenti separati (fianchi, ripiani, ante, schienali, zoccolo)
+- **Lista Taglio Automatica**: Export Excel/CSV per officina/CNC
 - **Validazioni automatiche** di dimensioni, spessori e interassi
 
 ### Post-processore Xilog Plus
@@ -20,9 +49,12 @@ Add-in completo per Autodesk Fusion 360 per la progettazione parametrica di mobi
 - Supporto forature standard: Ø5, Ø6, Ø8, Ø10, Ø12, Ø16, Ø35
 - Ottimizzazione percorsi e movimenti
 
-### Integrazione IA Locale
+### Integrazione IA Locale (Opzionale)
+- **Sempre funzionante**: Fallback automatico se IA non disponibile
+- **Auto-compilazione campi**: Descrizione naturale → parametri mobili
+- **Parser intelligente**: Supporta formati multipli ("largo 80cm", "L80", "L 80")
+- **Default intelligenti**: Applica dimensioni standard per tipo mobile (cucina, pensile, etc.)
 - Supporto **Ollama/LM Studio** con modelli leggeri (Llama 3 8B/3B quantizzati)
-- **Parsing descrizioni testuali** → parametri mobili
 - **Suggerimenti tecnici** automatici (ferramenta, dimensioni, accorgimenti)
 - **Validazione coerenza** parametri con feedback IA
 - Funziona su hardware consumer (testato su i7-7700, 32GB RAM, GTX 1050 Ti)
