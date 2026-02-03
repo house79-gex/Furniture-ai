@@ -110,7 +110,7 @@ class FurnitureWizardCommand(adsk.core.CommandCreatedEventHandler):
             dropdown_schienale.listItems.add('Incastrato (scanalatura 10mm)', False)
             dropdown_schienale.listItems.add('Arretrato custom', False)
             
-            schienale_inputs.addValueInput('arretramento_schienale', 'Arretramento (se custom)', 'mm',
+            schienale_inputs.addValueInput('arretramento_schienale', 'Arretramento (se custom)', 'cm',
                                           adsk.core.ValueInput.createByReal(0.8))
             schienale_inputs.itemById('arretramento_schienale').isEnabled = False
             

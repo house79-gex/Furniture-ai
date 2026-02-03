@@ -110,14 +110,18 @@ def generate_furniture(design: adsk.fusion.Design, params: Dict[str, Any]) -> Di
             prof_scanalatura = 1.0
             larghezza_scan = Ss  # Larghezza scanalatura = spessore schienale
             
-            # Crea scanalature sui fianchi
+            # Crea scanalature sui fianchi (solo se i pannelli esistono)
             logger.info("Creazione scanalature per schienale incastrato...")
-            add_groove_vertical(furniture_comp, fianco_sx, P - prof_scanalatura, H, larghezza_scan, S, 'SX')
-            add_groove_vertical(furniture_comp, fianco_dx, P - prof_scanalatura, H, larghezza_scan, S, 'DX')
+            if fianco_sx:
+                add_groove_vertical(furniture_comp, fianco_sx, P - prof_scanalatura, H, larghezza_scan, S, 'SX')
+            if fianco_dx:
+                add_groove_vertical(furniture_comp, fianco_dx, P - prof_scanalatura, H, larghezza_scan, S, 'DX')
             
-            # Crea scanalature su top e base
-            add_groove_horizontal(furniture_comp, top, P - prof_scanalatura, larghezza_scan, L, S, H-S, 'TOP')
-            add_groove_horizontal(furniture_comp, base, P - prof_scanalatura, larghezza_scan, L, S, 0, 'BASE')
+            # Crea scanalature su top e base (solo se i pannelli esistono)
+            if top:
+                add_groove_horizontal(furniture_comp, top, P - prof_scanalatura, larghezza_scan, L, S, H-S, 'TOP')
+            if base:
+                add_groove_horizontal(furniture_comp, base, P - prof_scanalatura, larghezza_scan, L, S, 0, 'BASE')
             
             # Schienale ridotto per entrare in scanalatura
             schienale = create_vertical_panel_XZ(furniture_comp, 'Schienale',
@@ -128,8 +132,10 @@ def generate_furniture(design: adsk.fusion.Design, params: Dict[str, Any]) -> Di
             arretramento = params.get('arretramento_schienale', 0.8)  # cm
             logger.info(f"Schienale arretrato: {arretramento}cm")
             
-            # Crea fresatura a L sui pannelli
-            add_L_groove(furniture_comp, [fianco_sx, fianco_dx, top, base], arretramento, Ss, P, L, H, S)
+            # Crea fresatura a L sui pannelli (solo se esistono)
+            panels_for_groove = [p for p in [fianco_sx, fianco_dx, top, base] if p is not None]
+            if panels_for_groove:
+                add_L_groove(furniture_comp, panels_for_groove, arretramento, Ss, P, L, H, S)
             
             # Schienale arretrato
             schienale = create_vertical_panel_XZ(furniture_comp, 'Schienale',
