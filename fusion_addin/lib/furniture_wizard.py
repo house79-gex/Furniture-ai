@@ -113,6 +113,8 @@ class FurnitureWizardCommand(adsk.core.CommandCreatedEventHandler):
             dropdown_schienale.listItems.add('Incastrato (scanalatura 10mm)', False)
             dropdown_schienale.listItems.add('Arretrato custom', False)
             
+            # Nota: Fusion 360 ValueInput usa unità del documento (default cm)
+            # L'etichetta 'cm' è corretta e coerente con altri parametri
             schienale_inputs.addValueInput('arretramento_schienale', 'Arretramento (se custom)', 'cm',
                                           adsk.core.ValueInput.createByReal(DEFAULT_SCHIENALE_OFFSET_CM))
             schienale_inputs.itemById('arretramento_schienale').isEnabled = False

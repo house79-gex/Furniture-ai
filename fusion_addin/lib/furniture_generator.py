@@ -137,7 +137,8 @@ def generate_furniture(design: adsk.fusion.Design, params: Dict[str, Any]) -> Di
             logger.info(f"Schienale arretrato: {arretramento}cm")
             
             # Crea fresatura a L sui pannelli (solo se esistono)
-            panels_for_groove = [p for p in [fianco_sx, fianco_dx, top, base] if p is not None]
+            all_panels = [fianco_sx, fianco_dx, top, base]
+            panels_for_groove = [p for p in all_panels if p is not None]
             if panels_for_groove:
                 add_L_groove(furniture_comp, panels_for_groove, arretramento, Ss, P, L, H, S)
             
@@ -327,6 +328,9 @@ def add_groove_vertical(component: adsk.fusion.Component, panel_body: adsk.fusio
     """
     Crea scanalatura verticale su fianco per schienale incastrato
     
+    NOTA: Implementazione STUB - logga parametri ma non crea scanalature fisiche nel modello 3D.
+    Implementazione completa richiede face selection e extrude cut.
+    
     Args:
         component: Componente Fusion
         panel_body: Body del pannello su cui creare la scanalatura
@@ -335,6 +339,9 @@ def add_groove_vertical(component: adsk.fusion.Component, panel_body: adsk.fusio
         width: Larghezza della scanalatura (spessore schienale)
         panel_thickness: Spessore del pannello laterale
         side: 'SX' o 'DX' per identificare il lato
+    
+    Returns:
+        True (indica che la funzione è stata chiamata, NON che le scanalature sono state create)
     """
     try:
         logger.info(f"Creazione scanalatura verticale su fianco {side}...")
@@ -363,6 +370,9 @@ def add_groove_horizontal(component: adsk.fusion.Component, panel_body: adsk.fus
     """
     Crea scanalatura orizzontale su top/base per schienale incastrato
     
+    NOTA: Implementazione STUB - logga parametri ma non crea scanalature fisiche nel modello 3D.
+    Implementazione completa richiede face selection e extrude cut.
+    
     Args:
         component: Componente Fusion
         panel_body: Body del pannello su cui creare la scanalatura
@@ -372,6 +382,9 @@ def add_groove_horizontal(component: adsk.fusion.Component, panel_body: adsk.fus
         panel_thickness: Spessore del pannello
         z_position: Posizione Z del pannello
         panel_name: Nome del pannello ('TOP' o 'BASE')
+    
+    Returns:
+        True (indica che la funzione è stata chiamata, NON che le scanalature sono state create)
     """
     try:
         logger.info(f"Creazione scanalatura orizzontale su {panel_name}...")
@@ -395,6 +408,9 @@ def add_L_groove(component: adsk.fusion.Component, panels: list,
     """
     Crea fresatura a L per schienale arretrato custom
     
+    NOTA: Implementazione STUB - logga parametri ma non crea fresature fisiche nel modello 3D.
+    Implementazione completa richiede face selection e extrude cut.
+    
     Args:
         component: Componente Fusion
         panels: Lista di body pannelli su cui creare la fresatura
@@ -404,6 +420,9 @@ def add_L_groove(component: adsk.fusion.Component, panels: list,
         width: Larghezza totale mobile (cm)
         height: Altezza totale mobile (cm)
         panel_thickness: Spessore pannelli (cm)
+    
+    Returns:
+        True (indica che la funzione è stata chiamata, NON che le fresature sono state create)
     """
     try:
         logger.info(f"Creazione fresatura a L per schienale arretrato ({offset}cm)...")
