@@ -24,11 +24,23 @@ def run(context):
         _app = adsk.core.Application.get()
         _ui = _app.userInterface
 
+        # Carica/crea configurazione (questo assicura che config.json esista)
+        config = config_manager.load_config()
+        
         # Inizializza il gestore UI
         ui_manager.initialize(_ui, _handlers)
         
-        _ui.messageBox('FurnitureAI add-in avviato con successo!\n\n'
-                      'Usa il pannello "Crea" per accedere ai comandi di progettazione mobili.')
+        # Verifica disponibilità IA
+        ai = ai_client.AIClient(
+            config.get('ai_endpoint', 'http://localhost:1234'),
+            model=config.get('ai_model', 'llama-3.2-3b-instruct'),
+            enable_fallback=False
+        )
+        
+        ai_status = '(IA disponibile)' if ai.is_available() else '(IA non disponibile - usa "Configura IA")'
+        
+        _ui.messageBox('FurnitureAI add-in avviato con successo! {}\n\n'
+                      'Usa il pannello "Crea" per accedere ai comandi di progettazione mobili.'.format(ai_status))
         
     except:
         if _ui:

@@ -14,6 +14,8 @@ from .cutlist_command import CutlistCommand
 from .nesting_command import NestingCommand
 from .drawing_command import DrawingCommand
 from .door_designer_command import DoorDesignerCommand
+from .config_ai_command import ConfigAICommand
+from .material_manager_command import MaterialManagerCommand
 
 _panel = None
 _controls = []
@@ -146,8 +148,39 @@ def initialize(ui: adsk.core.UserInterface, handlers: List):
                 ctrl.isPromoted = False
                 _controls.append(ctrl)
             
-            # 6. COMANDO GESTIONE MATERIALI (placeholder per futuro)
-            # Per ora materiali sono gestiti nel wizard
+            # 6. COMANDO GESTIONE MATERIALI
+            material_id = 'FurnitureAI_MaterialManager'
+            material_def = cmd_defs.itemById(material_id)
+            if not material_def:
+                material_def = cmd_defs.addButtonDefinition(
+                    material_id, 'Gestione Materiali',
+                    'Applica e gestisci materiali sui componenti', icons_temp)
+            
+            material_handler = MaterialManagerCommand()
+            material_def.commandCreated.add(material_handler)
+            handlers.append(material_handler)
+            
+            if not panel.controls.itemById(material_id):
+                ctrl = panel.controls.addCommand(material_def)
+                ctrl.isPromoted = False
+                _controls.append(ctrl)
+            
+            # 7. COMANDO CONFIGURA IA
+            config_ai_id = 'FurnitureAI_ConfigAI'
+            config_ai_def = cmd_defs.itemById(config_ai_id)
+            if not config_ai_def:
+                config_ai_def = cmd_defs.addButtonDefinition(
+                    config_ai_id, 'Configura IA',
+                    'Configura endpoint e modello IA (LM Studio/Ollama)', icons_temp)
+            
+            config_ai_handler = ConfigAICommand()
+            config_ai_def.commandCreated.add(config_ai_handler)
+            handlers.append(config_ai_handler)
+            
+            if not panel.controls.itemById(config_ai_id):
+                ctrl = panel.controls.addCommand(config_ai_def)
+                ctrl.isPromoted = False
+                _controls.append(ctrl)
             
     except Exception as e:
         if ui:
@@ -172,7 +205,9 @@ def cleanup(ui: adsk.core.UserInterface, handlers: List):
             'FurnitureAI_Cutlist',
             'FurnitureAI_Nesting',
             'FurnitureAI_Drawing',
-            'FurnitureAI_DoorDesigner'
+            'FurnitureAI_DoorDesigner',
+            'FurnitureAI_MaterialManager',
+            'FurnitureAI_ConfigAI'
         ]
         
         for cmd_id in command_ids:
