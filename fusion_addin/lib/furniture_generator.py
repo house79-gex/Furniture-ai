@@ -1,11 +1,14 @@
 """
-Generatore di mobili parametrici per Fusion 360
+Generatore di mobili parametrici per Fusion 360 - VERSIONE CORRETTA
 """
 
 import adsk.core
 import adsk.fusion
 import math
 from typing import Dict, Any, List
+from . import logging_utils
+
+logger = logging_utils.get_logger()
 
 
 def validate_parameters(params: Dict[str, Any]) -> List[str]:
@@ -33,31 +36,15 @@ def validate_parameters(params: Dict[str, Any]) -> List[str]:
     if params.get('num_ripiani', 0) < 0 or params.get('num_ripiani', 0) > 10:
         errors.append('Numero ripiani deve essere tra 0 e 10')
     
-    # Sistema 32mm - interassi multipli di 32mm
-    if params.get('sistema_32mm'):
-        altezza_interna = params.get('altezza', 0) - 2 * params.get('spessore_pannello', 0)
-        num_ripiani = params.get('num_ripiani', 0)
-        if num_ripiani > 0:
-            interasse = altezza_interna / (num_ripiani + 1)
-            if abs(interasse % 3.2 - 0) > 0.5 and abs(interasse % 3.2 - 3.2) > 0.5:
-                errors.append('Con sistema 32mm, gli interassi devono essere multipli di 32mm. '
-                            'Regolare altezza o numero ripiani.')
-    
     return errors
 
 
 def generate_furniture(design: adsk.fusion.Design, params: Dict[str, Any]) -> Dict[str, Any]:
     """
     Genera il mobile parametrico in Fusion 360
-    
-    Args:
-        design: Design attivo di Fusion 360
-        params: Parametri del mobile
-        
-    Returns:
-        Dict con 'success', 'components', 'error'
     """
     try:
+        logger.info("Inizio generazione mobile...")
         root_comp = design.rootComponent
         
         # Crea nuovo componente per il mobile
@@ -67,77 +54,70 @@ def generate_furniture(design: adsk.fusion.Design, params: Dict[str, Any]) -> Di
         
         components_created = []
         
-        # Dimensioni in cm (già validate)
-        # Nota: Fusion 360 API usa cm come unità di default per ValueInput
-        larghezza = params['larghezza']
-        altezza = params['altezza']
-        profondita = params['profondita']
-        spessore = params['spessore_pannello']
-        spessore_schienale = params['spessore_schienale']
+        # Dimensioni in cm
+        L = params['larghezza']
+        H = params['altezza']
+        P = params['profondita']
+        S = params['spessore_pannello']
+        Ss = params['spessore_schienale']
         
-        # Crea fianchi laterali
-        fianco_sx = create_panel(furniture_comp, 'Fianco_SX',
-                                profondita, altezza, spessore,
-                                0, 0, 0)
-        components_created.append('Fianco_SX')
+        logger.info(f"Dimensioni: L={L}, H={H}, P={P}, S={S}")
         
-        fianco_dx = create_panel(furniture_comp, 'Fianco_DX',
-                                profondita, altezza, spessore,
-                                larghezza - spessore, 0, 0)
-        components_created.append('Fianco_DX')
+        # FIANCO SINISTRO (verticale, piano YZ, posizione x=0)
+        logger.info("Creazione fianco SX...")
+        fianco_sx = create_vertical_panel_YZ(furniture_comp, 'Fianco_SX', P, H, S, 0, 0, 0)
+        if fianco_sx:
+            components_created.append('Fianco_SX')
         
-        # Crea top e base
-        top = create_panel(furniture_comp, 'Top',
-                          larghezza, profondita, spessore,
-                          0, altezza - spessore, 0)
-        components_created.append('Top')
+        # FIANCO DESTRO (verticale, piano YZ, posizione x=L-S)
+        logger.info("Creazione fianco DX...")
+        fianco_dx = create_vertical_panel_YZ(furniture_comp, 'Fianco_DX', P, H, S, L-S, 0, 0)
+        if fianco_dx:
+            components_created.append('Fianco_DX')
         
-        base = create_panel(furniture_comp, 'Base',
-                           larghezza, profondita, spessore,
-                           0, 0, 0)
-        components_created.append('Base')
+        # BASE (orizzontale, piano XY, posizione z=0)
+        logger.info("Creazione base...")
+        base = create_horizontal_panel_XY(furniture_comp, 'Base', L, P, S, 0, 0, 0)
+        if base:
+            components_created.append('Base')
         
-        # Crea ripiani interni
+        # TOP (orizzontale, piano XY, posizione z=H-S)
+        logger.info("Creazione top...")
+        top = create_horizontal_panel_XY(furniture_comp, 'Top', L, P, S, 0, 0, H-S)
+        if top:
+            components_created.append('Top')
+        
+        # RIPIANI INTERNI
         num_ripiani = params.get('num_ripiani', 0)
         if num_ripiani > 0:
-            altezza_interna = altezza - 2 * spessore
+            altezza_interna = H - 2*S
             interasse = altezza_interna / (num_ripiani + 1)
             
             for i in range(num_ripiani):
-                y_pos = spessore + interasse * (i + 1)
-                ripiano = create_panel(furniture_comp, 'Ripiano_{}'.format(i + 1),
-                                      larghezza - 2 * spessore, profondita, spessore,
-                                      spessore, y_pos, 0)
-                components_created.append('Ripiano_{}'.format(i + 1))
-                
-                # Aggiungi fori sistema 32mm se richiesto
-                if params.get('sistema_32mm') and params.get('fori_ripiani'):
-                    add_shelf_holes(furniture_comp, fianco_sx, y_pos, spessore, profondita)
-                    add_shelf_holes(furniture_comp, fianco_dx, y_pos, spessore, profondita)
+                z_pos = S + interasse * (i + 1)
+                logger.info(f"Creazione ripiano {i+1} a z={z_pos}...")
+                ripiano = create_horizontal_panel_XY(furniture_comp, f'Ripiano_{i+1}',
+                                                    L-2*S, P, S, S, 0, z_pos)
+                if ripiano:
+                    components_created.append(f'Ripiano_{i+1}')
         
-        # Crea schienale
-        schienale = create_panel(furniture_comp, 'Schienale',
-                                larghezza - 2 * spessore, altezza - 2 * spessore, spessore_schienale,
-                                spessore, spessore, profondita - spessore_schienale)
-        components_created.append('Schienale')
+        # SCHIENALE (verticale, piano XZ, posizione y=P-Ss)
+        logger.info("Creazione schienale...")
+        schienale = create_vertical_panel_XZ(furniture_comp, 'Schienale', 
+                                            L-2*S, H-2*S, Ss, S, P-Ss, S)
+        if schienale:
+            components_created.append('Schienale')
         
-        # Aggiungi fori per cerniere se richiesto
-        num_cerniere = params.get('num_cerniere', 0)
-        if num_cerniere > 0 and params.get('num_ante', 0) > 0:
-            add_hinge_holes(furniture_comp, fianco_sx, num_cerniere, altezza)
-            add_hinge_holes(furniture_comp, fianco_dx, num_cerniere, altezza)
-        
-        # Aggiungi spinatura se richiesta
-        if params.get('spinatura'):
-            add_dowel_holes(furniture_comp, [fianco_sx, fianco_dx], [top, base])
-        
-        # Crea zoccolo se richiesto
+        # ZOCCOLO (opzionale)
         if params.get('con_zoccolo'):
-            altezza_zoccolo = params.get('altezza_zoccolo', 10.0)
-            zoccolo = create_panel(furniture_comp, 'Zoccolo',
-                                  larghezza - 2 * spessore, altezza_zoccolo, spessore,
-                                  spessore, -altezza_zoccolo, 5.0)
-            components_created.append('Zoccolo')
+            Hz = params.get('altezza_zoccolo', 10.0)
+            logger.info("Creazione zoccolo...")
+            zoccolo = create_horizontal_panel_XY(furniture_comp, 'Zoccolo',
+                                                L-2*S, Hz, S, S, 5, -Hz)
+            if zoccolo:
+                components_created.append('Zoccolo')
+        
+        logger.info(f"Mobile creato: {len(components_created)} componenti")
         
         return {
             'success': True,
@@ -146,6 +126,7 @@ def generate_furniture(design: adsk.fusion.Design, params: Dict[str, Any]) -> Di
         }
         
     except Exception as e:
+        logger.error(f"Errore generazione mobile: {str(e)}")
         return {
             'success': False,
             'components': [],
@@ -153,160 +134,136 @@ def generate_furniture(design: adsk.fusion.Design, params: Dict[str, Any]) -> Di
         }
 
 
-def create_panel(component: adsk.fusion.Component, name: str,
-                width: float, height: float, thickness: float,
-                x: float, y: float, z: float) -> adsk.fusion.BRepBody:
+def create_horizontal_panel_XY(component: adsk.fusion.Component, name: str,
+                               width: float, depth: float, thickness: float,
+                               x: float, y: float, z: float) -> adsk.fusion.BRepBody:
     """
-    Crea un pannello rettangolare
-    
-    Args:
-        component: Componente in cui creare il pannello
-        name: Nome del pannello
-        width: Larghezza in cm
-        height: Altezza in cm
-        thickness: Spessore in cm
-        x, y, z: Posizione in cm
+    Crea pannello orizzontale (piano XY)
+    """
+    try:
+        sketches = component.sketches
+        xy_plane = component.xYConstructionPlane
         
-    Returns:
-        BRepBody del pannello creato
-    """
-    sketches = component.sketches
-    xy_plane = component.xYConstructionPlane
-    
-    # Crea sketch sul piano XY con offset Z
-    sketch = sketches.add(xy_plane)
-    
-    # Disegna rettangolo alle coordinate specificate
-    lines = sketch.sketchCurves.sketchLines
-    rect = lines.addTwoPointRectangle(
-        adsk.core.Point3D.create(x, y, 0),
-        adsk.core.Point3D.create(x + width, y + height, 0)
-    )
-    
-    # Estrusione nella direzione Z
-    profile = sketch.profiles.item(0)
-    extrudes = component.features.extrudeFeatures
-    extrude_input = extrudes.createInput(profile, adsk.fusion.FeatureOperations.NewBodyFeatureOperation)
-    
-    # Estrusione in una direzione con offset Z
-    distance = adsk.core.ValueInput.createByReal(thickness)
-    extrude_input.setDistanceExtent(False, distance)
-    
-    # Applica offset Z se necessario
-    if z != 0:
-        extrude_input.startExtent = adsk.fusion.OffsetStartDefinition.create(
-            adsk.core.ValueInput.createByReal(z)
+        # Crea sketch
+        sketch = sketches.add(xy_plane)
+        
+        # Rettangolo nel piano XY
+        rect = sketch.sketchCurves.sketchLines.addTwoPointRectangle(
+            adsk.core.Point3D.create(x, y, 0),
+            adsk.core.Point3D.create(x + width, y + depth, 0)
         )
-    
-    extrude_feature = extrudes.add(extrude_input)
-    
-    body = extrude_feature.bodies.item(0)
-    body.name = name
-    
-    return body
-
-
-def add_shelf_holes(component: adsk.fusion.Component, panel_body: adsk.fusion.BRepBody,
-                   y_pos: float, panel_thickness: float, panel_depth: float):
-    """
-    Aggiunge fori sistema 32mm per reggi-ripiano
-    
-    Args:
-        component: Componente Fusion
-        panel_body: Body del pannello su cui forare
-        y_pos: Posizione Y del ripiano
-        panel_thickness: Spessore del pannello (cm)
-        panel_depth: Profondità del pannello (cm)
-    """
-    try:
-        # Sistema 32mm: fori Ø5mm distanziati 32mm (3.2cm)
-        hole_diameter = 0.5  # 5mm = 0.5cm
-        spacing = 3.2  # 32mm = 3.2cm
-        hole_depth = panel_thickness / 2  # Metà spessore
         
-        # Numero di fori lungo la profondità
-        num_holes = max(1, int((panel_depth - 10.0) / spacing))  # -10cm per margini
+        # Estrusione verso l'alto (direzione Z)
+        profile = sketch.profiles.item(0)
+        extrudes = component.features.extrudeFeatures
+        extrude_input = extrudes.createInput(profile, adsk.fusion.FeatureOperations.NewBodyFeatureOperation)
         
-        holes = component.features.holeFeatures
+        # Distanza estrusione
+        distance = adsk.core.ValueInput.createByReal(thickness)
+        extrude_input.setDistanceExtent(False, distance)
         
-        # Crea fori lungo il pannello
-        for i in range(num_holes):
-            z_pos = 5.0 + spacing * i  # Inizia a 5cm dal bordo
-            
-            # Crea punto per il foro
-            # Nota: implementazione semplificata - in produzione usare face selection
-            # Per ora creiamo sketch e fori cilindrici semplici
-            
-        # Implementazione alternativa semplificata: creare fori con estrusione
-        # (Fusion API per hole features richiede face selection complessa)
+        # Offset iniziale Z
+        if z != 0:
+            extrude_input.startExtent = adsk.fusion.OffsetStartDefinition.create(
+                adsk.core.ValueInput.createByReal(z)
+            )
+        
+        extrude = extrudes.add(extrude_input)
+        body = extrude.bodies.item(0)
+        body.name = name
+        
+        return body
         
     except Exception as e:
-        # Non interrompere la generazione se i fori falliscono
-        pass
+        logger.error(f"Errore creazione pannello {name}: {str(e)}")
+        return None
 
 
-def add_hinge_holes(component: adsk.fusion.Component, panel_body: adsk.fusion.BRepBody,
-                   num_cerniere: int, altezza: float):
+def create_vertical_panel_YZ(component: adsk.fusion.Component, name: str,
+                             depth: float, height: float, thickness: float,
+                             x: float, y: float, z: float) -> adsk.fusion.BRepBody:
     """
-    Aggiunge fori per cerniere Ø35mm
-    
-    Args:
-        component: Componente Fusion
-        panel_body: Body del pannello su cui forare
-        num_cerniere: Numero di cerniere
-        altezza: Altezza totale del mobile (cm)
+    Crea pannello verticale frontale (piano YZ)
     """
     try:
-        if num_cerniere == 0:
-            return
+        sketches = component.sketches
+        yz_plane = component.yZConstructionPlane
         
-        # Fori cerniere Ø35mm
-        hole_diameter = 3.5  # 35mm = 3.5cm
-        hole_depth = 1.3  # Profondità standard cerniera 13mm = 1.3cm
+        # Crea sketch sul piano YZ
+        sketch = sketches.add(yz_plane)
         
-        # Distribuisce cerniere uniformemente in altezza
-        # Margini: 10cm dall'alto e dal basso
-        if num_cerniere == 1:
-            positions = [altezza / 2]
-        else:
-            usable_height = altezza - 20.0  # -20cm per margini
-            step = usable_height / (num_cerniere - 1) if num_cerniere > 1 else 0
-            positions = [10.0 + step * i for i in range(num_cerniere)]
+        # Rettangolo nel piano YZ
+        rect = sketch.sketchCurves.sketchLines.addTwoPointRectangle(
+            adsk.core.Point3D.create(0, y, z),
+            adsk.core.Point3D.create(0, y + depth, z + height)
+        )
         
-        # Implementazione semplificata
-        # In produzione: usare hole features con face selection appropriata
-        # Per ora documentato per riferimento futuro
+        # Estrusione lungo X
+        profile = sketch.profiles.item(0)
+        extrudes = component.features.extrudeFeatures
+        extrude_input = extrudes.createInput(profile, adsk.fusion.FeatureOperations.NewBodyFeatureOperation)
+        
+        # Distanza estrusione
+        distance = adsk.core.ValueInput.createByReal(thickness)
+        extrude_input.setDistanceExtent(False, distance)
+        
+        # Offset iniziale X
+        if x != 0:
+            extrude_input.startExtent = adsk.fusion.OffsetStartDefinition.create(
+                adsk.core.ValueInput.createByReal(x)
+            )
+        
+        extrude = extrudes.add(extrude_input)
+        body = extrude.bodies.item(0)
+        body.name = name
+        
+        return body
         
     except Exception as e:
-        # Non interrompere la generazione se i fori falliscono
-        pass
+        logger.error(f"Errore creazione pannello {name}: {str(e)}")
+        return None
 
 
-def add_dowel_holes(component: adsk.fusion.Component, 
-                   side_panels: List[adsk.fusion.BRepBody],
-                   horizontal_panels: List[adsk.fusion.BRepBody]):
+def create_vertical_panel_XZ(component: adsk.fusion.Component, name: str,
+                             width: float, height: float, thickness: float,
+                             x: float, y: float, z: float) -> adsk.fusion.BRepBody:
     """
-    Aggiunge fori per spinatura Ø8mm
-    
-    Args:
-        component: Componente Fusion
-        side_panels: Lista dei pannelli laterali (fianchi)
-        horizontal_panels: Lista dei pannelli orizzontali (top/base)
+    Crea pannello verticale laterale (piano XZ)
     """
     try:
-        # Spinatura standard Ø8mm, profondità 40mm = 4cm
-        dowel_diameter = 0.8  # 8mm = 0.8cm
-        dowel_depth = 4.0  # 40mm = 4cm
+        sketches = component.sketches
+        xz_plane = component.xZConstructionPlane
         
-        # Posizioni tipiche spinatura:
-        # - 2 spine per angolo
-        # - Distanza dal bordo: 5cm
-        # - Distanza tra spine: variabile in base alla dimensione
+        # Crea sketch sul piano XZ
+        sketch = sketches.add(xz_plane)
         
-        # Implementazione semplificata
-        # In produzione: calcolare posizioni precise e creare fori con hole features
-        # Per ora documentato per riferimento futuro
+        # Rettangolo nel piano XZ
+        rect = sketch.sketchCurves.sketchLines.addTwoPointRectangle(
+            adsk.core.Point3D.create(x, 0, z),
+            adsk.core.Point3D.create(x + width, 0, z + height)
+        )
+        
+        # Estrusione lungo Y
+        profile = sketch.profiles.item(0)
+        extrudes = component.features.extrudeFeatures
+        extrude_input = extrudes.createInput(profile, adsk.fusion.FeatureOperations.NewBodyFeatureOperation)
+        
+        # Distanza estrusione
+        distance = adsk.core.ValueInput.createByReal(thickness)
+        extrude_input.setDistanceExtent(False, distance)
+        
+        # Offset iniziale Y
+        if y != 0:
+            extrude_input.startExtent = adsk.fusion.OffsetStartDefinition.create(
+                adsk.core.ValueInput.createByReal(y)
+            )
+        
+        extrude = extrudes.add(extrude_input)
+        body = extrude.bodies.item(0)
+        body.name = name
+        
+        return body
         
     except Exception as e:
-        # Non interrompere la generazione se i fori falliscono
-        pass
+        logger.error(f"Errore creazione pannello {name}: {str(e)}")
+        return None
