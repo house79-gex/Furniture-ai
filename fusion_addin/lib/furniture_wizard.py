@@ -14,6 +14,7 @@ class FurnitureWizardCommand(adsk.core.CommandCreatedEventHandler):
     
     def __init__(self):
         super().__init__()
+        self._handlers = []  # FIX: mantieni riferimenti handlers per prevenire garbage collection
         
     def notify(self, args: adsk.core.CommandCreatedEventArgs):
         try:
@@ -23,12 +24,15 @@ class FurnitureWizardCommand(adsk.core.CommandCreatedEventHandler):
             # Aggiungi event handlers
             on_execute = FurnitureWizardExecuteHandler()
             cmd.execute.add(on_execute)
+            self._handlers.append(on_execute)  # FIX: salva riferimento
             
             on_input_changed = FurnitureWizardInputChangedHandler()
             cmd.inputChanged.add(on_input_changed)
+            self._handlers.append(on_input_changed)  # FIX: salva riferimento
             
             on_destroy = FurnitureWizardDestroyHandler()
             cmd.destroy.add(on_destroy)
+            self._handlers.append(on_destroy)  # FIX: salva riferimento
             
             # Crea inputs
             inputs = cmd.commandInputs
@@ -66,9 +70,9 @@ class FurnitureWizardCommand(adsk.core.CommandCreatedEventHandler):
             group_param.isExpanded = True
             param_inputs = group_param.children
             
-            param_inputs.addValueInput('spessore_pannello', 'Spessore pannello', 'mm',
+            param_inputs.addValueInput('spessore_pannello', 'Spessore pannello', 'cm',
                                       adsk.core.ValueInput.createByReal(1.8))
-            param_inputs.addValueInput('spessore_schienale', 'Spessore schienale', 'mm',
+            param_inputs.addValueInput('spessore_schienale', 'Spessore schienale', 'cm',
                                       adsk.core.ValueInput.createByReal(0.6))
             param_inputs.addIntegerSpinnerCommandInput('num_ripiani', 'N. ripiani', 0, 10, 1, 2)
             
@@ -185,12 +189,12 @@ class FurnitureWizardExecuteHandler(adsk.core.CommandEventHandler):
         if tipo_input:
             params['tipo_mobile'] = tipo_input.selectedItem.name
         
-        # Dimensioni (converti da cm a cm per coerenza)
+        # Dimensioni (già in cm)
         params['larghezza'] = inputs.itemById('larghezza').value if inputs.itemById('larghezza') else 80.0
         params['altezza'] = inputs.itemById('altezza').value if inputs.itemById('altezza') else 90.0
         params['profondita'] = inputs.itemById('profondita').value if inputs.itemById('profondita') else 60.0
         
-        # Spessori (converti da cm a mm)
+        # Spessori (già in cm)
         params['spessore_pannello'] = inputs.itemById('spessore_pannello').value if inputs.itemById('spessore_pannello') else 1.8
         params['spessore_schienale'] = inputs.itemById('spessore_schienale').value if inputs.itemById('spessore_schienale') else 0.6
         
