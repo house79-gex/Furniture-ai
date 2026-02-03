@@ -10,6 +10,10 @@ from . import logging_utils
 
 logger = logging_utils.get_logger()
 
+# Costanti per schienale incastrato
+GROOVE_DEPTH_CM = 1.0  # Profondità scanalatura per schienale incastrato (10mm)
+DEFAULT_SCHIENALE_OFFSET_CM = 0.8  # Offset default per schienale arretrato custom (8mm)
+
 
 def validate_parameters(params: Dict[str, Any]) -> List[str]:
     """Valida i parametri del mobile"""
@@ -107,7 +111,7 @@ def generate_furniture(design: adsk.fusion.Design, params: Dict[str, Any]) -> Di
         
         if tipo_schienale == 'Incastrato (scanalatura 10mm)':
             # Scanalatura 10mm = 1.0cm di profondità
-            prof_scanalatura = 1.0
+            prof_scanalatura = GROOVE_DEPTH_CM
             larghezza_scan = Ss  # Larghezza scanalatura = spessore schienale
             
             # Crea scanalature sui fianchi (solo se i pannelli esistono)
@@ -129,7 +133,7 @@ def generate_furniture(design: adsk.fusion.Design, params: Dict[str, Any]) -> Di
                                                 S, P - prof_scanalatura - Ss, S)
         
         elif tipo_schienale == 'Arretrato custom':
-            arretramento = params.get('arretramento_schienale', 0.8)  # cm
+            arretramento = params.get('arretramento_schienale', DEFAULT_SCHIENALE_OFFSET_CM)  # cm
             logger.info(f"Schienale arretrato: {arretramento}cm")
             
             # Crea fresatura a L sui pannelli (solo se esistono)

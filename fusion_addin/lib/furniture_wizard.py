@@ -8,6 +8,9 @@ import traceback
 from typing import Optional, Dict, Any
 from . import furniture_generator, ai_client, config_manager
 
+# Costanti per valori default
+DEFAULT_SCHIENALE_OFFSET_CM = 0.8  # Offset default per schienale arretrato custom (8mm)
+
 
 class FurnitureWizardCommand(adsk.core.CommandCreatedEventHandler):
     """Handler per il comando wizard mobili"""
@@ -111,7 +114,7 @@ class FurnitureWizardCommand(adsk.core.CommandCreatedEventHandler):
             dropdown_schienale.listItems.add('Arretrato custom', False)
             
             schienale_inputs.addValueInput('arretramento_schienale', 'Arretramento (se custom)', 'cm',
-                                          adsk.core.ValueInput.createByReal(0.8))
+                                          adsk.core.ValueInput.createByReal(DEFAULT_SCHIENALE_OFFSET_CM))
             schienale_inputs.itemById('arretramento_schienale').isEnabled = False
             
             # Zoccolo
@@ -239,7 +242,7 @@ class FurnitureWizardExecuteHandler(adsk.core.CommandEventHandler):
         else:
             params['tipo_schienale'] = 'A filo dietro'
         
-        params['arretramento_schienale'] = inputs.itemById('arretramento_schienale').value if inputs.itemById('arretramento_schienale') else 0.8
+        params['arretramento_schienale'] = inputs.itemById('arretramento_schienale').value if inputs.itemById('arretramento_schienale') else DEFAULT_SCHIENALE_OFFSET_CM
         
         # IA
         desc_input = inputs.itemById('descrizione_mobile')
