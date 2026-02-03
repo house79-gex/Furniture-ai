@@ -26,7 +26,8 @@ def initialize(ui: adsk.core.UserInterface, handlers: List):
         furniture_panel = create_tab.toolbarPanels.itemById('FurnitureAIPanel')
         if not furniture_panel:
             furniture_panel = create_tab.toolbarPanels.add('FurnitureAIPanel', 'FurnitureAI')
-        
+        # Debug (RIMUOVI dopo aver risolto)
+ui.messageBox(f'Resources folder: {resources_folder}\nExists: {os.path.exists(resources_folder)}\nIcon path: {icon_path}')
         # GESTIONE ICONA - Percorso corretto
         # __file__ è il percorso di ui_manager.py (in fusion_addin/lib/)
         # Dobbiamo andare su di 1 livello per arrivare a fusion_addin/, poi entrare in resources/
