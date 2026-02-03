@@ -6,7 +6,7 @@ import adsk.core
 import adsk.fusion
 import traceback
 from typing import Optional, Dict, Any
-from . import furniture_generator, ai_client, config_manager
+from . import furniture_generator, ai_client, config_manager, material_manager
 
 # Costanti per valori default
 DEFAULT_SCHIENALE_OFFSET_CM = 0.8  # Offset default per schienale arretrato custom (8mm)
@@ -131,6 +131,54 @@ class FurnitureWizardCommand(adsk.core.CommandCreatedEventHandler):
             zoccolo_inputs.addValueInput('altezza_zoccolo', 'Altezza zoccolo', 'cm',
                                         adsk.core.ValueInput.createByReal(10.0))
             
+            # Gruppo Materiali e Finiture
+            group_materiali = inputs.addGroupCommandInput('gruppo_materiali', 'Materiali e Finiture')
+            group_materiali.isExpanded = False  # COLLASSATO
+            materiali_inputs = group_materiali.children
+            
+            # Applica materiali
+            materiali_inputs.addBoolValueInput('applica_materiali', 'Applica materiali', True, '', True)
+            
+            # Materiale unico o differenziato
+            materiali_inputs.addBoolValueInput('materiale_unico', 'Materiale unico per tutto', True, '', True)
+            
+            # Dropdown materiale corpo
+            dropdown_mat_corpo = materiali_inputs.addDropDownCommandInput(
+                'materiale_corpo',
+                'Materiale corpo',
+                adsk.core.DropDownStyles.LabeledIconDropDownStyle
+            )
+            materiali_disponibili = [
+                'Rovere', 'Noce', 'Laccato Bianco', 'Laccato Nero',
+                'Melaminico Bianco', 'Melaminico Grigio'
+            ]
+            is_first = True
+            for mat in materiali_disponibili:
+                dropdown_mat_corpo.listItems.add(mat, is_first)
+                is_first = False
+            
+            # Dropdown materiale ante (disabilitato se materiale unico)
+            dropdown_mat_ante = materiali_inputs.addDropDownCommandInput(
+                'materiale_ante',
+                'Materiale ante',
+                adsk.core.DropDownStyles.LabeledIconDropDownStyle
+            )
+            for mat in materiali_disponibili:
+                dropdown_mat_ante.listItems.add(mat, False)
+            dropdown_mat_ante.listItems.item(2).isSelected = True  # Laccato Bianco default
+            materiali_inputs.itemById('materiale_ante').isEnabled = False
+            
+            # Dropdown materiale schienale (disabilitato se materiale unico)
+            dropdown_mat_schienale = materiali_inputs.addDropDownCommandInput(
+                'materiale_schienale',
+                'Materiale schienale',
+                adsk.core.DropDownStyles.LabeledIconDropDownStyle
+            )
+            for mat in materiali_disponibili:
+                dropdown_mat_schienale.listItems.add(mat, False)
+            dropdown_mat_schienale.listItems.item(4).isSelected = True  # Melaminico Bianco default
+            materiali_inputs.itemById('materiale_schienale').isEnabled = False
+            
             # Gruppo IA
             group_ia = inputs.addGroupCommandInput('gruppo_ia', 'Assistente IA')
             group_ia.isExpanded = False  # COLLASSATO
@@ -197,10 +245,60 @@ class FurnitureWizardExecuteHandler(adsk.core.CommandEventHandler):
             result = furniture_generator.generate_furniture(design, params)
             
             if result['success']:
-                ui.messageBox('Mobile creato con successo!\n\n'
-                            'Componenti: {}\n'
-                            'Per esportare in Xilog Plus, usa il post-processore.'.format(
-                                ', '.join(result['components'])))
+                # Applica materiali se richiesto
+                if params.get('applica_materiali', False):
+                    mat_mgr = material_manager.MaterialManager(design)
+                    component = design.rootComponent
+                    
+                    if params.get('materiale_unico', True):
+                        # Materiale unico
+                        mat_corpo = params.get('materiale_corpo', 'Rovere')
+                        success = mat_mgr.apply_material_uniform(component, mat_corpo)
+                        if success:
+                            ui.messageBox('Mobile creato con successo!\n\n'
+                                        'Componenti: {}\n'
+                                        'Materiale applicato: {}\n\n'
+                                        'Per esportare in Xilog Plus, usa il post-processore.'.format(
+                                            ', '.join(result['components']), mat_corpo))
+                        else:
+                            ui.messageBox('Mobile creato con successo!\n\n'
+                                        'Componenti: {}\n'
+                                        'NOTA: Materiale non applicato (libreria non disponibile)\n\n'
+                                        'Per esportare in Xilog Plus, usa il post-processore.'.format(
+                                            ', '.join(result['components'])))
+                    else:
+                        # Materiali differenziati
+                        materials_map = {
+                            'fianco': params.get('materiale_corpo', 'Rovere'),
+                            'ripiano': params.get('materiale_corpo', 'Rovere'),
+                            'struttura': params.get('materiale_corpo', 'Rovere'),
+                            'anta': params.get('materiale_ante', 'Laccato Bianco'),
+                            'schienale': params.get('materiale_schienale', 'Melaminico Bianco')
+                        }
+                        success = mat_mgr.apply_materials_differentiated(component, materials_map)
+                        if success:
+                            ui.messageBox('Mobile creato con successo!\n\n'
+                                        'Componenti: {}\n'
+                                        'Materiali applicati:\n'
+                                        '  - Corpo: {}\n'
+                                        '  - Ante: {}\n'
+                                        '  - Schienale: {}\n\n'
+                                        'Per esportare in Xilog Plus, usa il post-processore.'.format(
+                                            ', '.join(result['components']),
+                                            materials_map['fianco'],
+                                            materials_map['anta'],
+                                            materials_map['schienale']))
+                        else:
+                            ui.messageBox('Mobile creato con successo!\n\n'
+                                        'Componenti: {}\n'
+                                        'NOTA: Materiali non applicati (libreria non disponibile)\n\n'
+                                        'Per esportare in Xilog Plus, usa il post-processore.'.format(
+                                            ', '.join(result['components'])))
+                else:
+                    ui.messageBox('Mobile creato con successo!\n\n'
+                                'Componenti: {}\n'
+                                'Per esportare in Xilog Plus, usa il post-processore.'.format(
+                                    ', '.join(result['components'])))
             else:
                 ui.messageBox('Errore creazione mobile:\n{}'.format(result['error']))
                 
@@ -252,6 +350,22 @@ class FurnitureWizardExecuteHandler(adsk.core.CommandEventHandler):
         
         params['arretramento_schienale'] = inputs.itemById('arretramento_schienale').value if inputs.itemById('arretramento_schienale') else DEFAULT_SCHIENALE_OFFSET_CM
         
+        # Materiali
+        params['applica_materiali'] = inputs.itemById('applica_materiali').value if inputs.itemById('applica_materiali') else False
+        params['materiale_unico'] = inputs.itemById('materiale_unico').value if inputs.itemById('materiale_unico') else True
+        
+        mat_corpo_input = inputs.itemById('materiale_corpo')
+        if mat_corpo_input:
+            params['materiale_corpo'] = mat_corpo_input.selectedItem.name
+        
+        mat_ante_input = inputs.itemById('materiale_ante')
+        if mat_ante_input:
+            params['materiale_ante'] = mat_ante_input.selectedItem.name
+        
+        mat_schienale_input = inputs.itemById('materiale_schienale')
+        if mat_schienale_input:
+            params['materiale_schienale'] = mat_schienale_input.selectedItem.name
+        
         # IA
         desc_input = inputs.itemById('descrizione_mobile')
         if desc_input:
@@ -276,6 +390,15 @@ class FurnitureWizardInputChangedHandler(adsk.core.InputChangedEventHandler):
                 altezza_zoccolo = inputs.itemById('altezza_zoccolo')
                 if altezza_zoccolo:
                     altezza_zoccolo.isEnabled = changed_input.value
+            
+            # Abilita/disabilita materiali differenziati
+            if changed_input.id == 'materiale_unico':
+                mat_ante = inputs.itemById('materiale_ante')
+                mat_schienale = inputs.itemById('materiale_schienale')
+                if mat_ante:
+                    mat_ante.isEnabled = not changed_input.value
+                if mat_schienale:
+                    mat_schienale.isEnabled = not changed_input.value
             
             # Abilita/disabilita arretramento custom in base al tipo schienale
             if changed_input.id == 'tipo_schienale':
