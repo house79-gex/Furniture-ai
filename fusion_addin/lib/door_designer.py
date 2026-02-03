@@ -245,7 +245,7 @@ class DoorDesigner:
                 line1.startSketchPoint
             )
             
-            # Crea path
+            # Crea path (True = chained/connesso)
             path = self.component.features.createPath(line1, True)
             
             # Sketch profilo cornice (rettangolare semplice)

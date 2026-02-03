@@ -129,14 +129,14 @@ class NestingExecuteHandler(adsk.core.CommandEventHandler):
                 'Parametri:\n'
                 '- Lastra: {}x{} mm\n'
                 '- Spessore lama: {} mm\n'
-                '- Margine: {} mm\n'
+                '- Margine: {} cm\n'
                 '- Algoritmo: {}\n'
                 '- Rotazione: {}\n'
                 '- Minimizza scarto: {}\n\n'
                 'NOTA: Funzionalità in fase di implementazione.\n'
                 'Utilizzare WoodWorkingWizard per ottimizzazione completa.'.format(
-                    int(lastra_w * 10), int(lastra_h * 10),
-                    spessore_lama * 10, margine * 10,
+                    lastra_w, lastra_h,  # Valori già in cm
+                    spessore_lama, margine,  # Valori già in cm
                     algoritmo,
                     'Sì' if allow_rotation else 'No',
                     'Sì' if minimize_waste else 'No'

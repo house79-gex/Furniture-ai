@@ -42,7 +42,7 @@ class DrawingCommand(adsk.core.CommandCreatedEventHandler):
             
             viste_inputs.addBoolValueInput('vista_frontale', 'Vista frontale', True, '', True)
             viste_inputs.addBoolValueInput('vista_laterale', 'Vista laterale', True, '', True)
-            viste_inputs.addBoolValueInput('vista_alto', 'Vista dall\'alto', True, '', True)
+            viste_inputs.addBoolValueInput('vista_alto', "Vista dall'alto", True, '', True)
             viste_inputs.addBoolValueInput('vista_isometrica', 'Vista isometrica', True, '', False)
             
             # Gruppo dettagli

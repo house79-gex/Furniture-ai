@@ -14,6 +14,17 @@ logger = logging_utils.get_logger()
 class MaterialManager:
     """Gestisce i materiali per i mobili"""
     
+    # Mappa keywords per riconoscimento tipo componente da nome body
+    COMPONENT_TYPE_KEYWORDS = {
+        'fianco': ['fianco', 'lato'],
+        'ripiano': ['ripiano', 'mensola'],
+        'anta': ['anta', 'sportello'],
+        'schienale': ['schienale', 'retro'],
+        'struttura': ['base', 'top'],
+        'cassetto': ['cassetto'],
+        'zoccolo': ['zoccolo']
+    }
+    
     # Preset materiali disponibili
     PRESET_MATERIALS = {
         'Rovere': {
@@ -173,22 +184,12 @@ class MaterialManager:
             for body in component.bRepBodies:
                 body_name = body.name.lower()
                 
-                # Determina tipo componente dal nome
+                # Determina tipo componente dal nome usando keywords mappate
                 comp_type = None
-                if 'fianco' in body_name or 'lato' in body_name:
-                    comp_type = 'fianco'
-                elif 'ripiano' in body_name or 'mensola' in body_name:
-                    comp_type = 'ripiano'
-                elif 'anta' in body_name or 'sportello' in body_name:
-                    comp_type = 'anta'
-                elif 'schienale' in body_name or 'retro' in body_name:
-                    comp_type = 'schienale'
-                elif 'base' in body_name or 'top' in body_name:
-                    comp_type = 'struttura'
-                elif 'cassetto' in body_name:
-                    comp_type = 'cassetto'
-                elif 'zoccolo' in body_name:
-                    comp_type = 'zoccolo'
+                for ctype, keywords in self.COMPONENT_TYPE_KEYWORDS.items():
+                    if any(keyword in body_name for keyword in keywords):
+                        comp_type = ctype
+                        break
                 
                 # Applica materiale se trovato
                 if comp_type and comp_type in materials:

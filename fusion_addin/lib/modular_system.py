@@ -57,7 +57,7 @@ class ModularProject:
             occurrences = self.root_component.occurrences
             transform = adsk.core.Matrix3D.create()
             
-            # Imposta traslazione
+            # Imposta traslazione (valori in cm, già unità interne Fusion 360)
             transform.translation = adsk.core.Vector3D.create(position_x, position_y, position_z)
             
             # Crea occurrence
