@@ -4,7 +4,6 @@ Gestore dell'interfaccia utente per FurnitureAI
 
 import adsk.core
 import adsk.fusion
-import os
 from typing import List
 from .furniture_wizard import FurnitureWizardCommand
 
@@ -12,71 +11,65 @@ from .furniture_wizard import FurnitureWizardCommand
 def initialize(ui: adsk.core.UserInterface, handlers: List):
     """Inizializza l'interfaccia utente dell'add-in"""
     try:
-        # Usa il tab "Crea" (SolidTab) invece di "Utilità" (ToolsTab)
-        create_tab = ui.allToolbarTabs.itemById('SolidTab')
-        if not create_tab:
-            # Fallback su ToolsTab se SolidTab non trovato
-            create_tab = ui.allToolbarTabs.itemById('ToolsTab')
+        # LISTA DEI TAB DOVE APPARIRE (Design e Utilità)
+        tab_ids = ['SolidTab', 'ToolsTab']
         
-        if not create_tab:
+        panels_created = []
+        
+        for tab_id in tab_ids:
+            tab = ui.allToolbarTabs.itemById(tab_id)
+            if not tab:
+                continue
+            
+            # Crea pannello per questo tab (NOME CORTO)
+            panel_id = 'FurnitureAIPanel_{}'.format(tab_id)
+            furniture_panel = tab.toolbarPanels.itemById(panel_id)
+            if not furniture_panel:
+                furniture_panel = tab.toolbarPanels.add(panel_id, 'Mobili')  # NOME CORTO
+            
+            panels_created.append((tab_id, furniture_panel))
+        
+        # Se nessun pannello creato, errore
+        if not panels_created:
             ui.messageBox('Errore: nessun tab disponibile per FurnitureAI')
             return
         
-        # Crea pannello FurnitureAI
-        furniture_panel = create_tab.toolbarPanels.itemById('FurnitureAIPanel')
-        if not furniture_panel:
-            furniture_panel = create_tab.toolbarPanels.add('FurnitureAIPanel', 'FurnitureAI')
-        
-        # GESTIONE ICONA - Percorso corretto
-        current_file = os.path.abspath(__file__)
-        lib_folder = os.path.dirname(current_file)
-        addon_folder = os.path.dirname(lib_folder)
-        resources_folder = os.path.join(addon_folder, 'resources')
-        
-        # Verifica esistenza cartella resources
-        icon_path = ''
-        if os.path.exists(resources_folder):
-            icon_base_path = os.path.join(resources_folder, 'furniture_icon')
-            
-            # Verifica che almeno un'icona esista
-            if (os.path.exists(icon_base_path + '_16.png') or 
-                os.path.exists(icon_base_path + '_32.png') or
-                os.path.exists(icon_base_path + '_64.png')):
-                icon_path = icon_base_path
-        
-        # Aggiungi comando wizard mobili
+        # Crea DEFINIZIONE comando UNA SOLA VOLTA
         cmd_def = ui.commandDefinitions.itemById('FurnitureWizardCmd')
         if not cmd_def:
             cmd_def = ui.commandDefinitions.addButtonDefinition(
                 'FurnitureWizardCmd',
                 'Wizard Mobili',
                 'Crea mobili parametrici con wizard guidato',
-                icon_path
+                ''  # Nessuna icona
             )
         
-        # Crea handler per il comando
+        # Handler comando
         wizard_cmd = FurnitureWizardCommand()
         cmd_def.commandCreated.add(wizard_cmd)
         handlers.append(wizard_cmd)
         
-        # Aggiungi controllo al pannello
-        control = furniture_panel.controls.itemById('FurnitureWizardCmd')
-        if not control:
-            furniture_panel.controls.addCommand(cmd_def)
+        # AGGIUNGI CONTROLLO A TUTTI I PANNELLI CREATI
+        for tab_id, panel in panels_created:
+            control = panel.controls.itemById('FurnitureWizardCmd')
+            if not control:
+                panel.controls.addCommand(cmd_def)
         
-        # Aggiungi comando configurazione IA
+        # Comando configurazione IA
         config_cmd_def = ui.commandDefinitions.itemById('FurnitureAIConfigCmd')
         if not config_cmd_def:
             config_cmd_def = ui.commandDefinitions.addButtonDefinition(
                 'FurnitureAIConfigCmd',
-                'Configura IA',
+                'Config IA',
                 'Configura endpoint IA locale (Ollama/LM Studio)',
-                ''
+                ''  # Nessuna icona
             )
         
-        config_control = furniture_panel.controls.itemById('FurnitureAIConfigCmd')
-        if not config_control:
-            furniture_panel.controls.addCommand(config_cmd_def)
+        # Aggiungi config a tutti i pannelli
+        for tab_id, panel in panels_created:
+            config_control = panel.controls.itemById('FurnitureAIConfigCmd')
+            if not config_control:
+                panel.controls.addCommand(config_cmd_def)
         
     except Exception as e:
         if ui:
@@ -86,13 +79,18 @@ def initialize(ui: adsk.core.UserInterface, handlers: List):
 def cleanup(ui: adsk.core.UserInterface, handlers: List):
     """Pulisce l'interfaccia utente dell'add-in"""
     try:
-        for tab_id in ['SolidTab', 'ToolsTab']:
+        # Rimuovi pannelli da tutti i tab
+        tab_ids = ['SolidTab', 'ToolsTab']
+        
+        for tab_id in tab_ids:
             tab = ui.allToolbarTabs.itemById(tab_id)
             if tab:
-                furniture_panel = tab.toolbarPanels.itemById('FurnitureAIPanel')
+                panel_id = 'FurnitureAIPanel_{}'.format(tab_id)
+                furniture_panel = tab.toolbarPanels.itemById(panel_id)
                 if furniture_panel:
                     furniture_panel.deleteMe()
         
+        # Rimuovi definizioni comandi
         cmd_def = ui.commandDefinitions.itemById('FurnitureWizardCmd')
         if cmd_def:
             cmd_def.deleteMe()
@@ -101,6 +99,7 @@ def cleanup(ui: adsk.core.UserInterface, handlers: List):
         if config_cmd_def:
             config_cmd_def.deleteMe()
         
+        # Pulisci handlers
         handlers.clear()
         
     except Exception as e:
