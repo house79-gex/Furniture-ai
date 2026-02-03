@@ -159,6 +159,121 @@ Rispondi in italiano in modo conciso (max 200 parole)."""
         
         return suggestions
     
+    def parse_furniture_description(self, description):
+        """
+        Analizza descrizione e restituisce parametri strutturati
+        
+        Returns dict con: larghezza, altezza, profondita, num_ripiani, 
+        num_ante, tipo_schienale, note, confidence
+        """
+        if not self._ai_available or requests is None:
+            return self._parse_fallback(description)
+        
+        try:
+            prompt = """Analizza questa descrizione mobile e restituisci JSON:
+Descrizione: {}
+
+Formato JSON:
+{{
+  "larghezza_cm": <numero o null>,
+  "altezza_cm": <numero o null>,
+  "profondita_cm": <numero o null>,
+  "num_ripiani": <numero o null>,
+  "num_ante": <numero o null>,
+  "tipo_schienale": "<A filo dietro|Incastrato|Arretrato custom>",
+  "note": "<suggerimenti>"
+}}
+
+Usa standard italiani: cucina H=85-90 P=60, pensile H=70 P=35""".format(description)
+
+            response = requests.post(
+                '{}/api/generate'.format(self.endpoint),
+                json={'model': self.model, 'prompt': prompt, 
+                      'stream': False, 'format': 'json'},
+                timeout=30)
+            
+            if response.status_code == 200:
+                data = response.json()
+                import json
+                params = json.loads(data.get('response', '{}'))
+                
+                # Normalizza chiavi
+                result = {}
+                if params.get('larghezza_cm'):
+                    result['larghezza'] = float(params['larghezza_cm'])
+                if params.get('altezza_cm'):
+                    result['altezza'] = float(params['altezza_cm'])
+                if params.get('profondita_cm'):
+                    result['profondita'] = float(params['profondita_cm'])
+                if params.get('num_ripiani'):
+                    result['num_ripiani'] = int(params['num_ripiani'])
+                if params.get('num_ante'):
+                    result['num_ante'] = int(params['num_ante'])
+                if params.get('tipo_schienale'):
+                    result['tipo_schienale'] = params['tipo_schienale']
+                if params.get('note'):
+                    result['note'] = params['note']
+                
+                result['confidence'] = 0.9
+                return result
+        except:
+            pass
+        
+        return self._parse_fallback(description)
+    
+    def _parse_fallback(self, description):
+        """Parser regex semplice"""
+        import re
+        result = {'confidence': 0.5}
+        
+        # Pattern: "80cm", "L80", "larghezza 80"
+        larg = re.search(r'(?:larg|L)[:\s]*(\d+(?:\.\d+)?)\s*cm', description, re.I)
+        if larg:
+            result['larghezza'] = float(larg.group(1))
+        
+        alt = re.search(r'(?:alt|H)[:\s]*(\d+(?:\.\d+)?)\s*cm', description, re.I)
+        if alt:
+            result['altezza'] = float(alt.group(1))
+        
+        prof = re.search(r'(?:prof|P)[:\s]*(\d+(?:\.\d+)?)\s*cm', description, re.I)
+        if prof:
+            result['profondita'] = float(prof.group(1))
+        
+        # Ripiani: "2 ripiani", "con 3 ripiani"
+        ripiani = re.search(r'(\d+)\s*ripian', description, re.I)
+        if ripiani:
+            result['num_ripiani'] = int(ripiani.group(1))
+        
+        # Ante
+        ante = re.search(r'(\d+)\s*ant[ae]', description, re.I)
+        if ante:
+            result['num_ante'] = int(ante.group(1))
+        
+        # Cassetti
+        cassetti = re.search(r'(\d+)\s*cassett', description, re.I)
+        if cassetti:
+            result['num_cassetti'] = int(cassetti.group(1))
+        
+        # Schienale incastrato
+        if 'incastr' in description.lower():
+            result['tipo_schienale'] = 'Incastrato (scanalatura 10mm)'
+        
+        # Default cucina
+        if 'cucina' in description.lower():
+            if 'altezza' not in result:
+                result['altezza'] = 90.0
+            if 'profondita' not in result:
+                result['profondita'] = 60.0
+        
+        # Default pensile
+        if 'pensile' in description.lower():
+            if 'altezza' not in result:
+                result['altezza'] = 70.0
+            if 'profondita' not in result:
+                result['profondita'] = 35.0
+        
+        return result
+    
     def parse_description_to_params(self, description: str) -> Optional[Dict[str, Any]]:
         """
         Converte descrizione testuale in parametri mobili

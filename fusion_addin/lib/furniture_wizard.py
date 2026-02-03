@@ -24,6 +24,9 @@ class FurnitureWizardCommand(adsk.core.CommandCreatedEventHandler):
             cmd = args.command
             cmd.isExecutedWhenPreEmpted = False
             
+            # Imposta dimensioni dialog ottimali (450x600px per non uscire da schermo)
+            cmd.setDialogInitialSize(450, 600)
+            
             # Aggiungi event handlers
             on_execute = FurnitureWizardExecuteHandler()
             cmd.execute.add(on_execute)
@@ -42,7 +45,7 @@ class FurnitureWizardCommand(adsk.core.CommandCreatedEventHandler):
             
             # Gruppo tipo mobile
             group_tipo = inputs.addGroupCommandInput('gruppo_tipo', 'Tipo Mobile')
-            group_tipo.isExpanded = True
+            group_tipo.isExpanded = False  # COLLASSATO
             tipo_inputs = group_tipo.children
             
             dropdown_tipo = tipo_inputs.addDropDownCommandInput(
@@ -58,7 +61,7 @@ class FurnitureWizardCommand(adsk.core.CommandCreatedEventHandler):
             
             # Gruppo dimensioni
             group_dim = inputs.addGroupCommandInput('gruppo_dimensioni', 'Dimensioni (cm)')
-            group_dim.isExpanded = True
+            group_dim.isExpanded = True  # UNICO GRUPPO ESPANSO
             dim_inputs = group_dim.children
             
             dim_inputs.addValueInput('larghezza', 'Larghezza (L)', 'cm', 
@@ -70,7 +73,7 @@ class FurnitureWizardCommand(adsk.core.CommandCreatedEventHandler):
             
             # Gruppo parametri
             group_param = inputs.addGroupCommandInput('gruppo_parametri', 'Parametri')
-            group_param.isExpanded = True
+            group_param.isExpanded = False  # COLLASSATO
             param_inputs = group_param.children
             
             param_inputs.addValueInput('spessore_pannello', 'Spessore pannello', 'cm',
@@ -130,12 +133,15 @@ class FurnitureWizardCommand(adsk.core.CommandCreatedEventHandler):
             
             # Gruppo IA
             group_ia = inputs.addGroupCommandInput('gruppo_ia', 'Assistente IA')
-            group_ia.isExpanded = False
+            group_ia.isExpanded = False  # COLLASSATO
             ia_inputs = group_ia.children
             
             ia_inputs.addTextBoxCommandInput('descrizione_mobile', 'Descrivi il mobile', 
                                             'Es: mobile base cucina largo 80cm con 2 ripiani e 2 ante', 
                                             3, False)
+            
+            # Bottone per compilare campi da descrizione
+            ia_inputs.addBoolValueInput('btn_compila_ia', 'Compila da Descrizione', False, '', False)
             ia_inputs.addBoolValueInput('usa_ia', 'Usa IA per suggerimenti', True, '', False)
             
         except:
@@ -276,6 +282,79 @@ class FurnitureWizardInputChangedHandler(adsk.core.InputChangedEventHandler):
                 arretramento = inputs.itemById('arretramento_schienale')
                 if arretramento:
                     arretramento.isEnabled = (changed_input.selectedItem.name == 'Arretrato custom')
+            
+            # Handler pulsante "Compila da Descrizione"
+            if changed_input.id == 'btn_compila_ia':
+                descrizione_input = inputs.itemById('descrizione_mobile')
+                if descrizione_input and descrizione_input.text:
+                    try:
+                        # Usa AI Client per parsare la descrizione
+                        config = config_manager.load_config()
+                        ai = ai_client.AIClient(config.get('ai_endpoint', 'http://localhost:11434'), 
+                                               enable_fallback=True)
+                        
+                        params = ai.parse_furniture_description(descrizione_input.text)
+                        
+                        if params:
+                            # Popola campi con parametri estratti
+                            if 'larghezza' in params:
+                                larg_input = inputs.itemById('larghezza')
+                                if larg_input:
+                                    larg_input.value = params['larghezza']
+                            
+                            if 'altezza' in params:
+                                alt_input = inputs.itemById('altezza')
+                                if alt_input:
+                                    alt_input.value = params['altezza']
+                            
+                            if 'profondita' in params:
+                                prof_input = inputs.itemById('profondita')
+                                if prof_input:
+                                    prof_input.value = params['profondita']
+                            
+                            if 'num_ripiani' in params:
+                                ripiani_input = inputs.itemById('num_ripiani')
+                                if ripiani_input:
+                                    ripiani_input.value = params['num_ripiani']
+                            
+                            if 'num_ante' in params:
+                                ante_input = inputs.itemById('num_ante')
+                                if ante_input:
+                                    ante_input.value = params['num_ante']
+                            
+                            if 'num_cassetti' in params:
+                                cassetti_input = inputs.itemById('num_cassetti')
+                                if cassetti_input:
+                                    cassetti_input.value = params['num_cassetti']
+                            
+                            if 'tipo_schienale' in params:
+                                schienale_input = inputs.itemById('tipo_schienale')
+                                if schienale_input:
+                                    # Trova l'item corrispondente
+                                    for i in range(schienale_input.listItems.count):
+                                        if params['tipo_schienale'] in schienale_input.listItems.item(i).name:
+                                            schienale_input.listItems.item(i).isSelected = True
+                                            break
+                            
+                            # Messaggio di conferma
+                            app = adsk.core.Application.get()
+                            ui = app.userInterface
+                            confidence = params.get('confidence', 0.5)
+                            if confidence >= 0.8:
+                                msg = 'Parametri compilati con IA (affidabilita alta)'
+                            elif confidence >= 0.5:
+                                msg = 'Parametri compilati con parser fallback (affidabilita media)'
+                            else:
+                                msg = 'Parametri compilati parzialmente'
+                            
+                            if params.get('note'):
+                                msg += '\n\nNote: ' + params['note']
+                            
+                            ui.messageBox(msg)
+                    except Exception as e:
+                        app = adsk.core.Application.get()
+                        ui = app.userInterface
+                        ui.messageBox('Errore compilazione da IA:\n{}'.format(str(e)))
                     
         except:
             pass
