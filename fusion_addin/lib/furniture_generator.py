@@ -10,6 +10,10 @@ from . import logging_utils
 
 logger = logging_utils.get_logger()
 
+# Costanti per schienale incastrato
+GROOVE_DEPTH_CM = 1.0  # Profondità scanalatura per schienale incastrato (10mm)
+DEFAULT_SCHIENALE_OFFSET_CM = 0.8  # Offset default per schienale arretrato custom (8mm)
+
 
 def validate_parameters(params: Dict[str, Any]) -> List[str]:
     """Valida i parametri del mobile"""
@@ -101,10 +105,53 @@ def generate_furniture(design: adsk.fusion.Design, params: Dict[str, Any]) -> Di
                 if ripiano:
                     components_created.append(f'Ripiano_{i+1}')
         
-        # SCHIENALE (verticale, piano XZ, posizione y=P-Ss)
-        logger.info("Creazione schienale...")
-        schienale = create_vertical_panel_XZ(furniture_comp, 'Schienale', 
-                                            L-2*S, H-2*S, Ss, S, P-Ss, S)
+        # SCHIENALE con logica montaggio
+        tipo_schienale = params.get('tipo_schienale', 'A filo dietro')
+        logger.info(f"Tipo schienale: {tipo_schienale}")
+        
+        if tipo_schienale == 'Incastrato (scanalatura 10mm)':
+            # Scanalatura 10mm = 1.0cm di profondità
+            prof_scanalatura = GROOVE_DEPTH_CM
+            larghezza_scan = Ss  # Larghezza scanalatura = spessore schienale
+            
+            # Crea scanalature sui fianchi (solo se i pannelli esistono)
+            logger.info("Creazione scanalature per schienale incastrato...")
+            if fianco_sx:
+                add_groove_vertical(furniture_comp, fianco_sx, P - prof_scanalatura, H, larghezza_scan, S, 'SX')
+            if fianco_dx:
+                add_groove_vertical(furniture_comp, fianco_dx, P - prof_scanalatura, H, larghezza_scan, S, 'DX')
+            
+            # Crea scanalature su top e base (solo se i pannelli esistono)
+            if top:
+                add_groove_horizontal(furniture_comp, top, P - prof_scanalatura, larghezza_scan, L, S, H-S, 'TOP')
+            if base:
+                add_groove_horizontal(furniture_comp, base, P - prof_scanalatura, larghezza_scan, L, S, 0, 'BASE')
+            
+            # Schienale ridotto per entrare in scanalatura
+            schienale = create_vertical_panel_XZ(furniture_comp, 'Schienale',
+                                                L - 2*S, H - 2*S, Ss,
+                                                S, P - prof_scanalatura - Ss, S)
+        
+        elif tipo_schienale == 'Arretrato custom':
+            arretramento = params.get('arretramento_schienale', DEFAULT_SCHIENALE_OFFSET_CM)  # cm
+            logger.info(f"Schienale arretrato: {arretramento}cm")
+            
+            # Crea fresatura a L sui pannelli (solo se esistono)
+            all_panels = [fianco_sx, fianco_dx, top, base]
+            panels_for_groove = [p for p in all_panels if p is not None]
+            if panels_for_groove:
+                add_L_groove(furniture_comp, panels_for_groove, arretramento, Ss, P, L, H, S)
+            
+            # Schienale arretrato
+            schienale = create_vertical_panel_XZ(furniture_comp, 'Schienale',
+                                                L - 2*S, H - 2*S, Ss,
+                                                S, P - arretramento - Ss, S)
+        
+        else:  # A filo dietro (default)
+            logger.info("Creazione schienale a filo dietro...")
+            schienale = create_vertical_panel_XZ(furniture_comp, 'Schienale', 
+                                                L-2*S, H-2*S, Ss, S, P-Ss, S)
+        
         if schienale:
             components_created.append('Schienale')
         
@@ -183,22 +230,31 @@ def create_vertical_panel_YZ(component: adsk.fusion.Component, name: str,
                              depth: float, height: float, thickness: float,
                              x: float, y: float, z: float) -> adsk.fusion.BRepBody:
     """
-    Crea pannello verticale frontale (piano YZ)
+    Crea pannello verticale su piano YZ (fianchi laterali)
+    Usa offset plane per posizionamento corretto
     """
     try:
-        sketches = component.sketches
-        yz_plane = component.yZConstructionPlane
+        # Crea piano offset se x != 0
+        planes = component.constructionPlanes
+        if x != 0:
+            plane_input = planes.createInput()
+            plane_input.setByOffset(
+                component.yZConstructionPlane,
+                adsk.core.ValueInput.createByReal(x)
+            )
+            offset_plane = planes.add(plane_input)
+            sketch = component.sketches.add(offset_plane)
+        else:
+            sketch = component.sketches.add(component.yZConstructionPlane)
         
-        # Crea sketch sul piano YZ
-        sketch = sketches.add(yz_plane)
-        
-        # Rettangolo nel piano YZ
+        # Rettangolo con coordinate (Y, Z) sul piano YZ
+        # X=0 è fisso sul piano (coordinata implicita)
         rect = sketch.sketchCurves.sketchLines.addTwoPointRectangle(
             adsk.core.Point3D.create(0, y, z),
             adsk.core.Point3D.create(0, y + depth, z + height)
         )
         
-        # Estrusione lungo X
+        # Estrusione lungo asse X
         profile = sketch.profiles.item(0)
         extrudes = component.features.extrudeFeatures
         extrude_input = extrudes.createInput(profile, adsk.fusion.FeatureOperations.NewBodyFeatureOperation)
@@ -206,12 +262,6 @@ def create_vertical_panel_YZ(component: adsk.fusion.Component, name: str,
         # Distanza estrusione
         distance = adsk.core.ValueInput.createByReal(thickness)
         extrude_input.setDistanceExtent(False, distance)
-        
-        # Offset iniziale X
-        if x != 0:
-            extrude_input.startExtent = adsk.fusion.OffsetStartDefinition.create(
-                adsk.core.ValueInput.createByReal(x)
-            )
         
         extrude = extrudes.add(extrude_input)
         body = extrude.bodies.item(0)
@@ -228,22 +278,31 @@ def create_vertical_panel_XZ(component: adsk.fusion.Component, name: str,
                              width: float, height: float, thickness: float,
                              x: float, y: float, z: float) -> adsk.fusion.BRepBody:
     """
-    Crea pannello verticale laterale (piano XZ)
+    Crea pannello verticale su piano XZ (schienale)
+    Usa offset plane per posizionamento corretto
     """
     try:
-        sketches = component.sketches
-        xz_plane = component.xZConstructionPlane
+        # Crea piano offset se y != 0
+        planes = component.constructionPlanes
+        if y != 0:
+            plane_input = planes.createInput()
+            plane_input.setByOffset(
+                component.xZConstructionPlane,
+                adsk.core.ValueInput.createByReal(y)
+            )
+            offset_plane = planes.add(plane_input)
+            sketch = component.sketches.add(offset_plane)
+        else:
+            sketch = component.sketches.add(component.xZConstructionPlane)
         
-        # Crea sketch sul piano XZ
-        sketch = sketches.add(xz_plane)
-        
-        # Rettangolo nel piano XZ
+        # Rettangolo con coordinate (X, Z) sul piano XZ
+        # Y=0 è fisso sul piano (coordinata implicita)
         rect = sketch.sketchCurves.sketchLines.addTwoPointRectangle(
             adsk.core.Point3D.create(x, 0, z),
             adsk.core.Point3D.create(x + width, 0, z + height)
         )
         
-        # Estrusione lungo Y
+        # Estrusione lungo asse Y
         profile = sketch.profiles.item(0)
         extrudes = component.features.extrudeFeatures
         extrude_input = extrudes.createInput(profile, adsk.fusion.FeatureOperations.NewBodyFeatureOperation)
@@ -251,12 +310,6 @@ def create_vertical_panel_XZ(component: adsk.fusion.Component, name: str,
         # Distanza estrusione
         distance = adsk.core.ValueInput.createByReal(thickness)
         extrude_input.setDistanceExtent(False, distance)
-        
-        # Offset iniziale Y
-        if y != 0:
-            extrude_input.startExtent = adsk.fusion.OffsetStartDefinition.create(
-                adsk.core.ValueInput.createByReal(y)
-            )
         
         extrude = extrudes.add(extrude_input)
         body = extrude.bodies.item(0)
@@ -267,3 +320,124 @@ def create_vertical_panel_XZ(component: adsk.fusion.Component, name: str,
     except Exception as e:
         logger.error(f"Errore creazione pannello {name}: {str(e)}")
         return None
+
+
+def add_groove_vertical(component: adsk.fusion.Component, panel_body: adsk.fusion.BRepBody,
+                       y_position: float, height: float, width: float, panel_thickness: float,
+                       side: str) -> bool:
+    """
+    Crea scanalatura verticale su fianco per schienale incastrato
+    
+    NOTA: Implementazione STUB - logga parametri ma non crea scanalature fisiche nel modello 3D.
+    Implementazione completa richiede face selection e extrude cut.
+    
+    Args:
+        component: Componente Fusion
+        panel_body: Body del pannello su cui creare la scanalatura
+        y_position: Posizione Y della scanalatura (distanza dal fronte)
+        height: Altezza totale del pannello
+        width: Larghezza della scanalatura (spessore schienale)
+        panel_thickness: Spessore del pannello laterale
+        side: 'SX' o 'DX' per identificare il lato
+    
+    Returns:
+        True (indica che la funzione è stata chiamata, NON che le scanalature sono state create)
+    """
+    try:
+        logger.info(f"Creazione scanalatura verticale su fianco {side}...")
+        
+        # Trova la faccia interna del pannello (verso il centro del mobile)
+        # Per ora, registriamo solo l'intenzione - implementazione completa richiede face selection
+        logger.info(f"  Posizione Y: {y_position}, Larghezza: {width}, Altezza: {height}")
+        logger.info(f"  Profondità scanalatura: 10mm (1cm)")
+        
+        # TODO: Implementazione completa con face selection e extrude cut
+        # 1. Selezionare faccia interna (face selection API)
+        # 2. Creare sketch sulla faccia
+        # 3. Disegnare rettangolo per scanalatura
+        # 4. Eseguire extrude cut (operazione sottrazione)
+        
+        return True
+        
+    except Exception as e:
+        logger.error(f"Errore creazione scanalatura verticale {side}: {str(e)}")
+        return False
+
+
+def add_groove_horizontal(component: adsk.fusion.Component, panel_body: adsk.fusion.BRepBody,
+                         y_position: float, width: float, panel_width: float, 
+                         panel_thickness: float, z_position: float, panel_name: str) -> bool:
+    """
+    Crea scanalatura orizzontale su top/base per schienale incastrato
+    
+    NOTA: Implementazione STUB - logga parametri ma non crea scanalature fisiche nel modello 3D.
+    Implementazione completa richiede face selection e extrude cut.
+    
+    Args:
+        component: Componente Fusion
+        panel_body: Body del pannello su cui creare la scanalatura
+        y_position: Posizione Y della scanalatura (distanza dal fronte)
+        width: Larghezza della scanalatura (spessore schienale)
+        panel_width: Larghezza totale del pannello
+        panel_thickness: Spessore del pannello
+        z_position: Posizione Z del pannello
+        panel_name: Nome del pannello ('TOP' o 'BASE')
+    
+    Returns:
+        True (indica che la funzione è stata chiamata, NON che le scanalature sono state create)
+    """
+    try:
+        logger.info(f"Creazione scanalatura orizzontale su {panel_name}...")
+        
+        # Registra parametri per implementazione futura
+        logger.info(f"  Posizione Y: {y_position}, Larghezza: {width}")
+        logger.info(f"  Profondità scanalatura: 10mm (1cm)")
+        
+        # TODO: Implementazione completa con face selection e extrude cut
+        
+        return True
+        
+    except Exception as e:
+        logger.error(f"Errore creazione scanalatura {panel_name}: {str(e)}")
+        return False
+
+
+def add_L_groove(component: adsk.fusion.Component, panels: list,
+                offset: float, thickness: float, depth: float, width: float,
+                height: float, panel_thickness: float) -> bool:
+    """
+    Crea fresatura a L per schienale arretrato custom
+    
+    NOTA: Implementazione STUB - logga parametri ma non crea fresature fisiche nel modello 3D.
+    Implementazione completa richiede face selection e extrude cut.
+    
+    Args:
+        component: Componente Fusion
+        panels: Lista di body pannelli su cui creare la fresatura
+        offset: Arretramento dal filo posteriore (cm)
+        thickness: Spessore schienale (cm)
+        depth: Profondità totale mobile (cm)
+        width: Larghezza totale mobile (cm)
+        height: Altezza totale mobile (cm)
+        panel_thickness: Spessore pannelli (cm)
+    
+    Returns:
+        True (indica che la funzione è stata chiamata, NON che le fresature sono state create)
+    """
+    try:
+        logger.info(f"Creazione fresatura a L per schienale arretrato ({offset}cm)...")
+        
+        # Registra parametri per implementazione futura
+        logger.info(f"  Offset: {offset}cm, Spessore schienale: {thickness}cm")
+        logger.info(f"  Profondità fresatura: {offset}cm + {thickness}cm")
+        
+        # TODO: Implementazione completa
+        # La fresatura a L consiste in due tagli:
+        # 1. Taglio orizzontale sulla faccia posteriore per l'offset
+        # 2. Taglio verticale per alloggiare lo spessore dello schienale
+        
+        return True
+        
+    except Exception as e:
+        logger.error(f"Errore creazione fresatura a L: {str(e)}")
+        return False

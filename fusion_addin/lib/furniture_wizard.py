@@ -8,6 +8,9 @@ import traceback
 from typing import Optional, Dict, Any
 from . import furniture_generator, ai_client, config_manager
 
+# Costanti per valori default
+DEFAULT_SCHIENALE_OFFSET_CM = 0.8  # Offset default per schienale arretrato custom (8mm)
+
 
 class FurnitureWizardCommand(adsk.core.CommandCreatedEventHandler):
     """Handler per il comando wizard mobili"""
@@ -95,6 +98,26 @@ class FurnitureWizardCommand(adsk.core.CommandCreatedEventHandler):
             
             ante_inputs.addIntegerSpinnerCommandInput('num_ante', 'N. ante', 0, 10, 1, 0)
             ante_inputs.addIntegerSpinnerCommandInput('num_cassetti', 'N. cassetti', 0, 10, 1, 0)
+            
+            # Schienale
+            group_schienale = inputs.addGroupCommandInput('gruppo_schienale', 'Schienale')
+            group_schienale.isExpanded = False
+            schienale_inputs = group_schienale.children
+            
+            dropdown_schienale = schienale_inputs.addDropDownCommandInput(
+                'tipo_schienale',
+                'Montaggio schienale',
+                adsk.core.DropDownStyles.LabeledIconDropDownStyle
+            )
+            dropdown_schienale.listItems.add('A filo dietro', True)
+            dropdown_schienale.listItems.add('Incastrato (scanalatura 10mm)', False)
+            dropdown_schienale.listItems.add('Arretrato custom', False)
+            
+            # Nota: Fusion 360 ValueInput usa unità del documento (default cm)
+            # L'etichetta 'cm' è corretta e coerente con altri parametri
+            schienale_inputs.addValueInput('arretramento_schienale', 'Arretramento (se custom)', 'cm',
+                                          adsk.core.ValueInput.createByReal(DEFAULT_SCHIENALE_OFFSET_CM))
+            schienale_inputs.itemById('arretramento_schienale').isEnabled = False
             
             # Zoccolo
             group_zoccolo = inputs.addGroupCommandInput('gruppo_zoccolo', 'Zoccolo')
@@ -214,6 +237,15 @@ class FurnitureWizardExecuteHandler(adsk.core.CommandEventHandler):
         # Zoccolo
         params['altezza_zoccolo'] = inputs.itemById('altezza_zoccolo').value if inputs.itemById('altezza_zoccolo') else 10.0
         
+        # Schienale
+        tipo_schienale_input = inputs.itemById('tipo_schienale')
+        if tipo_schienale_input:
+            params['tipo_schienale'] = tipo_schienale_input.selectedItem.name
+        else:
+            params['tipo_schienale'] = 'A filo dietro'
+        
+        params['arretramento_schienale'] = inputs.itemById('arretramento_schienale').value if inputs.itemById('arretramento_schienale') else DEFAULT_SCHIENALE_OFFSET_CM
+        
         # IA
         desc_input = inputs.itemById('descrizione_mobile')
         if desc_input:
@@ -238,6 +270,12 @@ class FurnitureWizardInputChangedHandler(adsk.core.InputChangedEventHandler):
                 altezza_zoccolo = inputs.itemById('altezza_zoccolo')
                 if altezza_zoccolo:
                     altezza_zoccolo.isEnabled = changed_input.value
+            
+            # Abilita/disabilita arretramento custom in base al tipo schienale
+            if changed_input.id == 'tipo_schienale':
+                arretramento = inputs.itemById('arretramento_schienale')
+                if arretramento:
+                    arretramento.isEnabled = (changed_input.selectedItem.name == 'Arretrato custom')
                     
         except:
             pass
