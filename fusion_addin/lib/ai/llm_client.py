@@ -199,7 +199,7 @@ Output JSON:
         num_ripiani = params.get('num_ripiani', 2)
         
         return {
-            "cerniere": {"tipo": "cerniera a cerniera 110°", "quantita": num_ante * 2},
+            "cerniere": {"tipo": "cerniera 110°", "quantita": num_ante * 2},
             "guide_cassetti": {"tipo": "guide a sfera", "quantita": num_cassetti},
             "maniglie": {"tipo": "maniglia standard", "quantita": num_ante + num_cassetti},
             "reggipiano": {"quantita": num_ripiani * 4},

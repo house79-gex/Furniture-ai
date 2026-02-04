@@ -33,7 +33,7 @@ def test_llm_client():
         )
         print("✓ llm_client imported")
         
-        # Crea client
+        # Crea istanza del client LLM per i test
         client = llm_client.LLMClient()
         print("✓ LLMClient instantiated")
         
