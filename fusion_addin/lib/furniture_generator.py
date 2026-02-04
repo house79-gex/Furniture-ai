@@ -10,6 +10,10 @@ from . import logging_utils
 
 logger = logging_utils.get_logger()
 
+# Costanti per generazione mobili
+GAP_ANTE_CM = 0.2  # Gap tra ante: 2mm = 0.2cm
+SPESSORE_ANTA_DEFAULT_CM = 1.8  # Spessore standard ante: 18mm = 1.8cm
+
 
 def validate_parameters(params: Dict[str, Any]) -> List[str]:
     """Valida i parametri del mobile"""
@@ -110,15 +114,16 @@ def generate_furniture(design: adsk.fusion.Design, params: Dict[str, Any]) -> Di
         if num_ante > 0:
             logger.info("Creazione {} ante...".format(num_ante))
             
-            # Gap tra ante: 2mm
-            gap = 0.2
+            # Calcolo dimensioni ante con gap
+            gap = GAP_ANTE_CM
             larghezza_anta = (L - (num_ante + 1) * gap) / num_ante
             altezza_anta = H - 2 * gap  # Gap top/bottom
-            spessore_anta = 1.8
+            spessore_anta = SPESSORE_ANTA_DEFAULT_CM
             
             for i in range(num_ante):
                 x_anta = gap + i * (larghezza_anta + gap)
-                y_anta = -spessore_anta  # Davanti ai fianchi
+                # Posizionamento Y: negativo per posizionare anta davanti al mobile
+                y_anta = -spessore_anta  
                 z_anta = gap
                 
                 anta = create_door_panel(furniture_comp, 
@@ -531,15 +536,16 @@ def generate_furniture_in_component(component: adsk.fusion.Component,
         if num_ante > 0:
             logger.info("Creazione {} ante...".format(num_ante))
             
-            # Gap tra ante: 2mm
-            gap = 0.2
+            # Calcolo dimensioni ante con gap
+            gap = GAP_ANTE_CM
             larghezza_anta = (L - (num_ante + 1) * gap) / num_ante
             altezza_anta = H - 2 * gap  # Gap top/bottom
-            spessore_anta = 1.8
+            spessore_anta = SPESSORE_ANTA_DEFAULT_CM
             
             for i in range(num_ante):
                 x_anta = gap + i * (larghezza_anta + gap)
-                y_anta = -spessore_anta  # Davanti ai fianchi
+                # Posizionamento Y: negativo per posizionare anta davanti al mobile
+                y_anta = -spessore_anta  
                 z_anta = gap
                 
                 anta = create_door_panel(component, 

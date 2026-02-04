@@ -18,6 +18,9 @@ except ImportError:
 class AIClient:
     """Client per comunicare con endpoint IA locale (non bloccante)"""
     
+    # Costanti di configurazione
+    REQUEST_TIMEOUT = 5  # Timeout richieste HTTP in secondi
+    
     def __init__(self, endpoint: str = 'http://localhost:1234', model: str = None, enable_fallback: bool = True):
         """
         Inizializza client IA
@@ -41,29 +44,29 @@ class AIClient:
         try:
             # LM Studio: /v1/models
             logger.info("Verifica IA endpoint: {}".format(self.endpoint))
-            response = requests.get('{}/v1/models'.format(self.endpoint), timeout=5)
+            response = requests.get('{}/v1/models'.format(self.endpoint), timeout=self.REQUEST_TIMEOUT)
             
             if response.status_code == 200:
                 data = response.json()
                 models = data.get('data', [])
                 if models:
-                    logger.info("✅ IA disponibile: {} modelli trovati".format(len(models)))
+                    logger.info("[OK] IA disponibile: {} modelli trovati".format(len(models)))
                     return True
             
             # Ollama fallback: /api/version
-            response = requests.get('{}/api/version'.format(self.endpoint), timeout=5)
+            response = requests.get('{}/api/version'.format(self.endpoint), timeout=self.REQUEST_TIMEOUT)
             if response.status_code == 200:
-                logger.info("✅ IA disponibile (Ollama)")
+                logger.info("[OK] IA disponibile (Ollama)")
                 return True
                 
         except requests.exceptions.Timeout:
-            logger.warning("⚠️ IA timeout: {} (server lento o spento)".format(self.endpoint))
+            logger.warning("[WARN] IA timeout: {} (server lento o spento)".format(self.endpoint))
         except requests.exceptions.ConnectionError:
-            logger.warning("⚠️ IA non raggiungibile: {} (verifica server attivo)".format(self.endpoint))
+            logger.warning("[WARN] IA non raggiungibile: {} (verifica server attivo)".format(self.endpoint))
         except Exception as e:
-            logger.warning("⚠️ IA check fallito: {}".format(str(e)))
+            logger.warning("[WARN] IA check fallito: {}".format(str(e)))
         
-        logger.info("ℹ️ IA non disponibile, utilizzo fallback locale")
+        logger.info("[INFO] IA non disponibile, utilizzo fallback locale")
         return False
     
     def is_available(self) -> bool:
