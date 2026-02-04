@@ -210,12 +210,23 @@ def create_vertical_panel_YZ(component: adsk.fusion.Component, name: str,
         )
         yz_plane = planes.add(plane_input)
         
-        # 2. Sketch con coordinate LOCALI - sempre da (0,0) a (depth, height)
+        # 2. Sketch con 4 LINEE MANUALI (coordinate locali Y,Z) - FIX GEOMETRIA
         sketch = component.sketches.add(yz_plane)
-        rect = sketch.sketchCurves.sketchLines.addTwoPointRectangle(
+        lines = sketch.sketchCurves.sketchLines
+        
+        # Rettangolo su piano YZ: (0,0) → (0,depth,0) → (0,depth,height) → (0,0,height) → chiuso
+        l1 = lines.addByTwoPoints(
             adsk.core.Point3D.create(0, 0, 0),
-            adsk.core.Point3D.create(0, depth, height)
-        )
+            adsk.core.Point3D.create(0, depth, 0))
+        l2 = lines.addByTwoPoints(
+            adsk.core.Point3D.create(0, depth, 0),
+            adsk.core.Point3D.create(0, depth, height))
+        l3 = lines.addByTwoPoints(
+            adsk.core.Point3D.create(0, depth, height),
+            adsk.core.Point3D.create(0, 0, height))
+        l4 = lines.addByTwoPoints(
+            adsk.core.Point3D.create(0, 0, height),
+            adsk.core.Point3D.create(0, 0, 0))
         
         # Verifica profili
         if sketch.profiles.count == 0:
@@ -280,12 +291,23 @@ def create_vertical_panel_XZ(component: adsk.fusion.Component, name: str,
         )
         xz_plane = planes.add(plane_input)
         
-        # 2. Sketch con coordinate LOCALI - sempre da (0,0) a (width, height)
+        # 2. Sketch con 4 LINEE MANUALI (coordinate locali X,Z) - FIX GEOMETRIA
         sketch = component.sketches.add(xz_plane)
-        rect = sketch.sketchCurves.sketchLines.addTwoPointRectangle(
+        lines = sketch.sketchCurves.sketchLines
+        
+        # Rettangolo su piano XZ: (0,0) → (width,0,0) → (width,0,height) → (0,0,height) → chiuso
+        l1 = lines.addByTwoPoints(
             adsk.core.Point3D.create(0, 0, 0),
-            adsk.core.Point3D.create(width, 0, height)
-        )
+            adsk.core.Point3D.create(width, 0, 0))
+        l2 = lines.addByTwoPoints(
+            adsk.core.Point3D.create(width, 0, 0),
+            adsk.core.Point3D.create(width, 0, height))
+        l3 = lines.addByTwoPoints(
+            adsk.core.Point3D.create(width, 0, height),
+            adsk.core.Point3D.create(0, 0, height))
+        l4 = lines.addByTwoPoints(
+            adsk.core.Point3D.create(0, 0, height),
+            adsk.core.Point3D.create(0, 0, 0))
         
         # Verifica profili
         if sketch.profiles.count == 0:
