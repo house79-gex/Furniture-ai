@@ -5,6 +5,9 @@ Client non bloccante con suggerimenti di fallback se IA non disponibile
 
 import json
 from typing import Optional, Dict, Any
+from . import logging_utils
+
+logger = logging_utils.get_logger()
 
 try:
     import requests
@@ -32,22 +35,36 @@ class AIClient:
     def _check_availability(self) -> bool:
         """Verifica se l'endpoint IA è disponibile (supporta sia Ollama che LM Studio)"""
         if requests is None:
+            logger.warning("Modulo requests non disponibile, IA disabilitata")
             return False
         
-        # Prova endpoint LM Studio prima
         try:
-            response = requests.get('{}/v1/models'.format(self.endpoint), timeout=2)
+            # LM Studio: /v1/models
+            logger.info("Verifica IA endpoint: {}".format(self.endpoint))
+            response = requests.get('{}/v1/models'.format(self.endpoint), timeout=5)
+            
             if response.status_code == 200:
+                data = response.json()
+                models = data.get('data', [])
+                if models:
+                    logger.info("✅ IA disponibile: {} modelli trovati".format(len(models)))
+                    return True
+            
+            # Ollama fallback: /api/version
+            response = requests.get('{}/api/version'.format(self.endpoint), timeout=5)
+            if response.status_code == 200:
+                logger.info("✅ IA disponibile (Ollama)")
                 return True
-        except:
-            pass
+                
+        except requests.exceptions.Timeout:
+            logger.warning("⚠️ IA timeout: {} (server lento o spento)".format(self.endpoint))
+        except requests.exceptions.ConnectionError:
+            logger.warning("⚠️ IA non raggiungibile: {} (verifica server attivo)".format(self.endpoint))
+        except Exception as e:
+            logger.warning("⚠️ IA check fallito: {}".format(str(e)))
         
-        # Prova endpoint Ollama come fallback
-        try:
-            response = requests.get('{}/api/version'.format(self.endpoint), timeout=2)
-            return response.status_code == 200
-        except:
-            return False
+        logger.info("ℹ️ IA non disponibile, utilizzo fallback locale")
+        return False
     
     def is_available(self) -> bool:
         """Restituisce se l'IA è disponibile"""

@@ -105,6 +105,31 @@ def generate_furniture(design: adsk.fusion.Design, params: Dict[str, Any]) -> Di
         if schienale:
             components_created.append('Schienale')
         
+        # ANTE (dopo schienale, prima di zoccolo)
+        num_ante = params.get('num_ante', 0)
+        if num_ante > 0:
+            logger.info("Creazione {} ante...".format(num_ante))
+            
+            # Gap tra ante: 2mm
+            gap = 0.2
+            larghezza_anta = (L - (num_ante + 1) * gap) / num_ante
+            altezza_anta = H - 2 * gap  # Gap top/bottom
+            spessore_anta = 1.8
+            
+            for i in range(num_ante):
+                x_anta = gap + i * (larghezza_anta + gap)
+                y_anta = -spessore_anta  # Davanti ai fianchi
+                z_anta = gap
+                
+                anta = create_door_panel(furniture_comp, 
+                                        'Anta_{}'.format(i+1),
+                                        larghezza_anta, 
+                                        altezza_anta,
+                                        spessore_anta,
+                                        x_anta, y_anta, z_anta)
+                if anta:
+                    components_created.append('Anta_{}'.format(i+1))
+        
         # ZOCCOLO (opzionale)
         if params.get('con_zoccolo'):
             Hz = params.get('altezza_zoccolo', 10.0)
@@ -314,13 +339,15 @@ def create_vertical_panel_XZ(component: adsk.fusion.Component, name: str,
             logger.error("Profilo vuoto per pannello {}: sketch XZ non ha generato profili chiusi".format(name))
             return None
         
-        # 3. Estrusione lungo Y
+        # 3. Estrusione lungo Y (direzione NEGATIVA per schienale arretrato)
         profile = sketch.profiles.item(0)
         extrudes = component.features.extrudeFeatures
         extrude_input = extrudes.createInput(profile, 
             adsk.fusion.FeatureOperations.NewBodyFeatureOperation)
         distance = adsk.core.ValueInput.createByReal(thickness)
-        extrude_input.setDistanceExtent(False, distance)
+        # FIX: Estrusione verso -Y (direzione corretta per schienale arretrato)
+        extrude_input.setOneSideExtent(
+            adsk.fusion.ExtentDirections.NegativeExtentDirection, distance)
         
         extrude = extrudes.add(extrude_input)
         body = extrude.bodies.item(0)
@@ -342,6 +369,89 @@ def create_vertical_panel_XZ(component: adsk.fusion.Component, name: str,
         
     except Exception as e:
         logger.error('Errore creazione pannello {}: {}'.format(name, str(e)))
+        return None
+
+
+def create_door_panel(component: adsk.fusion.Component, name: str,
+                      width: float, height: float, thickness: float,
+                      x: float, y: float, z: float) -> adsk.fusion.BRepBody:
+    """
+    Crea anta piatta frontale (piano XZ, estrusione -Y)
+    
+    Args:
+        component: Componente Fusion 360
+        name: Nome dell'anta
+        width: Larghezza (dimensione X)
+        height: Altezza (dimensione Z)
+        thickness: Spessore (estrusione lungo -Y)
+        x: Posizione X finale
+        y: Posizione Y finale (negativa per anta frontale)
+        z: Posizione Z finale
+    """
+    try:
+        planes = component.constructionPlanes
+        
+        # 1. Crea piano XZ per anta verticale frontale
+        plane_input = planes.createInput()
+        plane_input.setByOffset(
+            component.xZConstructionPlane,
+            adsk.core.ValueInput.createByReal(0)
+        )
+        xz_plane = planes.add(plane_input)
+        
+        # 2. Sketch con 4 linee manuali (coordinate locali X,Z)
+        sketch = component.sketches.add(xz_plane)
+        lines = sketch.sketchCurves.sketchLines
+        
+        # Rettangolo su piano XZ
+        l1 = lines.addByTwoPoints(
+            adsk.core.Point3D.create(0, 0, 0),
+            adsk.core.Point3D.create(width, 0, 0))
+        l2 = lines.addByTwoPoints(
+            adsk.core.Point3D.create(width, 0, 0),
+            adsk.core.Point3D.create(width, 0, height))
+        l3 = lines.addByTwoPoints(
+            adsk.core.Point3D.create(width, 0, height),
+            adsk.core.Point3D.create(0, 0, height))
+        l4 = lines.addByTwoPoints(
+            adsk.core.Point3D.create(0, 0, height),
+            adsk.core.Point3D.create(0, 0, 0))
+        
+        # Verifica profili
+        if sketch.profiles.count == 0:
+            logger.error("Profilo vuoto per anta {}".format(name))
+            return None
+        
+        # 3. Estrusione verso DAVANTI (direzione -Y)
+        profile = sketch.profiles.item(0)
+        extrudes = component.features.extrudeFeatures
+        extrude_input = extrudes.createInput(profile, 
+            adsk.fusion.FeatureOperations.NewBodyFeatureOperation)
+        
+        distance = adsk.core.ValueInput.createByReal(thickness)
+        extrude_input.setOneSideExtent(
+            adsk.fusion.ExtentDirections.NegativeExtentDirection, distance)
+        
+        extrude = extrudes.add(extrude_input)
+        body = extrude.bodies.item(0)
+        body.name = name
+        
+        logger.info("Anta {} creata base: {}x{} cm (sp={})".format(name, width, height, thickness))
+        
+        # 4. Traslazione posizione finale
+        move_feats = component.features.moveFeatures
+        transform = adsk.core.Matrix3D.create()
+        transform.translation = adsk.core.Vector3D.create(x, y, z)
+        bodies = adsk.core.ObjectCollection.create()
+        bodies.add(body)
+        move_input = move_feats.createInput(bodies, transform)
+        move_feats.add(move_input)
+        
+        logger.info("Anta {} posizionata: @ ({},{},{})".format(name, x, y, z))
+        return body
+        
+    except Exception as e:
+        logger.error("Errore creazione anta {}: {}".format(name, str(e)))
         return None
 
 
@@ -416,6 +526,31 @@ def generate_furniture_in_component(component: adsk.fusion.Component,
         if schienale:
             components_created.append('Schienale')
         
+        # ANTE (dopo schienale, prima di zoccolo)
+        num_ante = params.get('num_ante', 0)
+        if num_ante > 0:
+            logger.info("Creazione {} ante...".format(num_ante))
+            
+            # Gap tra ante: 2mm
+            gap = 0.2
+            larghezza_anta = (L - (num_ante + 1) * gap) / num_ante
+            altezza_anta = H - 2 * gap  # Gap top/bottom
+            spessore_anta = 1.8
+            
+            for i in range(num_ante):
+                x_anta = gap + i * (larghezza_anta + gap)
+                y_anta = -spessore_anta  # Davanti ai fianchi
+                z_anta = gap
+                
+                anta = create_door_panel(component, 
+                                        'Anta_{}'.format(i+1),
+                                        larghezza_anta, 
+                                        altezza_anta,
+                                        spessore_anta,
+                                        x_anta, y_anta, z_anta)
+                if anta:
+                    components_created.append('Anta_{}'.format(i+1))
+        
         # ZOCCOLO (opzionale)
         if params.get('con_zoccolo'):
             Hz = params.get('altezza_zoccolo', 10.0)
@@ -440,3 +575,47 @@ def generate_furniture_in_component(component: adsk.fusion.Component,
             'components': [],
             'error': str(e)
         }
+
+
+def add_shelf_holes_32mm(component: adsk.fusion.Component, body: adsk.fusion.BRepBody, 
+                         width: float, depth: float) -> bool:
+    """
+    Aggiunge fori sistema 32mm (5mm diametro, passo 32mm) per reggipiani
+    
+    Args:
+        component: Componente Fusion 360
+        body: Body del ripiano su cui creare i fori
+        width: Larghezza ripiano
+        depth: Profondità ripiano
+        
+    Returns:
+        True se successo, False altrimenti
+        
+    Note:
+        Implementazione completa in PR futura - TODO
+    """
+    # TODO: Implementazione completa fori sistema 32mm
+    logger.info("add_shelf_holes_32mm: Skeleton - implementazione futura")
+    return True
+
+
+def add_back_panel_groove(component: adsk.fusion.Component, side_body: adsk.fusion.BRepBody,
+                          depth: float, height: float) -> bool:
+    """
+    Aggiunge scanalatura per schienale incastrato (10mm larghezza, 5mm profondità)
+    
+    Args:
+        component: Componente Fusion 360
+        side_body: Body del fianco su cui creare la scanalatura
+        depth: Profondità fianco
+        height: Altezza fianco
+        
+    Returns:
+        True se successo, False altrimenti
+        
+    Note:
+        Implementazione completa in PR futura - TODO
+    """
+    # TODO: Implementazione completa scanalatura schienale incastrato
+    logger.info("add_back_panel_groove: Skeleton - implementazione futura")
+    return True
