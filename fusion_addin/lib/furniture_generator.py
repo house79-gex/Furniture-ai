@@ -599,9 +599,11 @@ def add_shelf_holes_32mm(component: adsk.fusion.Component, body: adsk.fusion.BRe
         
     Note:
         Implementazione completa in PR futura - TODO
+        Attualmente questa è solo una funzione skeleton
     """
     # TODO: Implementazione completa fori sistema 32mm
-    logger.info("add_shelf_holes_32mm: Skeleton - implementazione futura")
+    logger.info("add_shelf_holes_32mm: Funzione skeleton - implementazione futura")
+    # Non fallisce per non bloccare la generazione del mobile
     return True
 
 
@@ -621,7 +623,9 @@ def add_back_panel_groove(component: adsk.fusion.Component, side_body: adsk.fusi
         
     Note:
         Implementazione completa in PR futura - TODO
+        Attualmente questa è solo una funzione skeleton
     """
     # TODO: Implementazione completa scanalatura schienale incastrato
-    logger.info("add_back_panel_groove: Skeleton - implementazione futura")
+    logger.info("add_back_panel_groove: Funzione skeleton - implementazione futura")
+    # Non fallisce per non bloccare la generazione del mobile
     return True
