@@ -422,6 +422,23 @@ Parametri generati:
 - Per implementare fori: vedere API `HoleFeature` di Fusion 360
 - Esempio workflow: sketch su faccia → hole feature → pattern se necessario
 
+## 🆓 FreeCAD 1.1 (workbench)
+
+È disponibile un workbench per **FreeCAD 1.1** che condivide la logica con l'add-in Fusion tramite `furniture_core/`:
+
+- Wizard mobili (stessi parametri base)
+- Generazione pannelli 3D (Part)
+- Parser descrizione testuale e lista taglio CSV
+- Post-processore Xilog invariato (`postprocessor/`)
+
+📖 Installazione: [docs/FREECAD_INSTALL.md](docs/FREECAD_INSTALL.md)
+
+```text
+furniture_core/          # logica condivisa
+freecad_addon/FurnitureAI/
+InitGui.py               # shim se si installa tutta la repo in Mod/
+```
+
 ## 🤝 Contributi
 
 Contributi benvenuti! Apri issue o pull request su GitHub.

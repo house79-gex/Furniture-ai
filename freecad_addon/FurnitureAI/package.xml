@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<package format="1" xmlns="https://wiki.freecad.org/Package_Metadata">
+  <name>FurnitureAI</name>
+  <description>Progettazione parametrica mobili (FreeCAD) — condivide furniture_core con l'add-in Fusion</description>
+  <version>0.1.0</version>
+  <date>2026-05-18</date>
+  <maintainer email="house79@example.com">House79</maintainer>
+  <license file="../../../LICENSE">MIT</license>
+  <url type="repository">https://github.com/house79-gex/Furniture-ai</url>
+  <icon>Resources/icons/FurnitureAI.svg</icon>
+  <tag>furniture</tag>
+  <tag>woodworking</tag>
+  <depend type="addon" optional="false">Draft</depend>
+  <depend type="addon" optional="false">Part</depend>
+  <freecadmin>1.0.0</freecadmin>
+  <freecadmax>1.1.99</freecadmax>
+</package>

@@ -12,30 +12,33 @@ logger = logging_utils.get_logger()
 
 
 def validate_parameters(params: Dict[str, Any]) -> List[str]:
-    """Valida i parametri del mobile"""
+    """Valida i parametri del mobile (delega a furniture_core se disponibile)."""
+    try:
+        import os
+        import sys
+
+        _repo = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", ".."))
+        if _repo not in sys.path:
+            sys.path.insert(0, _repo)
+        from furniture_core.validation import validate_cabinet_params
+
+        return validate_cabinet_params(params)
+    except ImportError:
+        pass
+
     errors = []
-    
-    # Dimensioni minime e massime
-    if params.get('larghezza', 0) < 20.0 or params.get('larghezza', 0) > 300.0:
-        errors.append('Larghezza deve essere tra 20 e 300 cm')
-    
-    if params.get('altezza', 0) < 20.0 or params.get('altezza', 0) > 300.0:
-        errors.append('Altezza deve essere tra 20 e 300 cm')
-    
-    if params.get('profondita', 0) < 20.0 or params.get('profondita', 0) > 100.0:
-        errors.append('Profondità deve essere tra 20 e 100 cm')
-    
-    # Spessori
-    if params.get('spessore_pannello', 0) < 1.0 or params.get('spessore_pannello', 0) > 5.0:
-        errors.append('Spessore pannello deve essere tra 1.0 e 5.0 cm')
-    
-    if params.get('spessore_schienale', 0) < 0.3 or params.get('spessore_schienale', 0) > 2.0:
-        errors.append('Spessore schienale deve essere tra 0.3 e 2.0 cm')
-    
-    # Numero ripiani
-    if params.get('num_ripiani', 0) < 0 or params.get('num_ripiani', 0) > 10:
-        errors.append('Numero ripiani deve essere tra 0 e 10')
-    
+    if params.get("larghezza", 0) < 20.0 or params.get("larghezza", 0) > 300.0:
+        errors.append("Larghezza deve essere tra 20 e 300 cm")
+    if params.get("altezza", 0) < 20.0 or params.get("altezza", 0) > 300.0:
+        errors.append("Altezza deve essere tra 20 e 300 cm")
+    if params.get("profondita", 0) < 20.0 or params.get("profondita", 0) > 100.0:
+        errors.append("Profondità deve essere tra 20 e 100 cm")
+    if params.get("spessore_pannello", 0) < 1.0 or params.get("spessore_pannello", 0) > 5.0:
+        errors.append("Spessore pannello deve essere tra 1.0 e 5.0 cm")
+    if params.get("spessore_schienale", 0) < 0.3 or params.get("spessore_schienale", 0) > 2.0:
+        errors.append("Spessore schienale deve essere tra 0.3 e 2.0 cm")
+    if params.get("num_ripiani", 0) < 0 or params.get("num_ripiani", 0) > 10:
+        errors.append("Numero ripiani deve essere tra 0 e 10")
     return errors
 
 
