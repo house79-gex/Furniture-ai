@@ -54,6 +54,55 @@ class CmdFurnitureWizard:
         return "Gui::Command"
 
 
+class CmdExportXilog:
+    """Esporta programma Xilog Plus per CNC SCM."""
+
+    def GetResources(self):
+        return {
+            "Pixmap": _ICON,
+            "MenuText": "Export Xilog",
+            "ToolTip": "Genera file .xilog (Xilog Plus) dai parametri wizard",
+        }
+
+    def IsActive(self):
+        return True
+
+    def Activated(self):
+        try:
+            from PySide2 import QtWidgets
+        except ImportError:
+            from PySide import QtGui as QtWidgets  # type: ignore
+
+        dlg = FurnitureWizardDialog(Gui.getMainWindow())
+        dlg.setWindowTitle("FurnitureAI — Export Xilog")
+        if dlg.exec_() != 1:
+            return
+        params = dlg.get_params()
+        if not params:
+            return
+
+        path, _ = QtWidgets.QFileDialog.getSaveFileName(
+            Gui.getMainWindow(),
+            "Salva programma Xilog",
+            App.getUserAppDataDir(),
+            "Xilog (*.xilog);;Tutti (*.*)",
+        )
+        if not path:
+            return
+        if not path.lower().endswith(".xilog"):
+            path += ".xilog"
+
+        from furniture_core.xilog_export import save_xilog_for_cabinet
+
+        if save_xilog_for_cabinet(params, path):
+            App.Console.PrintMessage("FurnitureAI: Xilog salvato in {}\n".format(path))
+        else:
+            App.Console.PrintError("FurnitureAI: errore salvataggio Xilog\n")
+
+    def GetClassName(self):
+        return "Gui::Command"
+
+
 class CmdExportCutlist:
     """Esporta lista taglio CSV dal wizard (ultima generazione manuale)."""
 
@@ -99,7 +148,12 @@ class CmdExportCutlist:
         return "Gui::Command"
 
 
-COMMAND_LIST = ["FurnitureAI_Wizard", "FurnitureAI_Cutlist"]
+COMMAND_LIST = [
+    "FurnitureAI_Wizard",
+    "FurnitureAI_Cutlist",
+    "FurnitureAI_Xilog",
+]
 
 Gui.addCommand("FurnitureAI_Wizard", CmdFurnitureWizard())
 Gui.addCommand("FurnitureAI_Cutlist", CmdExportCutlist())
+Gui.addCommand("FurnitureAI_Xilog", CmdExportXilog())

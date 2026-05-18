@@ -11,6 +11,7 @@ from .validation import validate_cabinet_params
 from .parser_nl import parse_description
 from .panel_specs import build_panel_specs
 from .cutlist import panels_to_cutlist, export_csv, export_excel
+from .xilog_export import generate_xilog_for_cabinet, save_xilog_for_cabinet
 
 __all__ = [
     "FURNITURE_TYPES",
@@ -22,4 +23,6 @@ __all__ = [
     "panels_to_cutlist",
     "export_csv",
     "export_excel",
+    "generate_xilog_for_cabinet",
+    "save_xilog_for_cabinet",
 ]

@@ -35,6 +35,7 @@ Copia l'intera cartella `Furniture-ai` in:
 3. Imposta dimensioni o incolla una descrizione testuale → **Applica descrizione**.
 4. **OK** per generare pannelli (Part) raggruppati in `Mobile_FurnitureAI`.
 5. **Lista taglio** esporta CSV dalla stessa logica di `furniture_core`.
+6. **Export Xilog** genera un file `.xilog` multi-pannello per SCM Record 130TV (spinatura e fori 32 mm se attivi nel wizard).
 
 ## Struttura
 
