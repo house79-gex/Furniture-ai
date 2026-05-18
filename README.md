@@ -431,7 +431,8 @@ Parametri generati:
 - Parser descrizione testuale e lista taglio CSV
 - Post-processore Xilog invariato (`postprocessor/`)
 
-📖 Installazione: [docs/FREECAD_INSTALL.md](docs/FREECAD_INSTALL.md)
+📖 Installazione: [docs/FREECAD_INSTALL.md](docs/FREECAD_INSTALL.md)  
+🤖 Handoff agente / altro PC: [docs/AGENT_RECAP.md](docs/AGENT_RECAP.md)
 
 ```text
 furniture_core/          # logica condivisa
