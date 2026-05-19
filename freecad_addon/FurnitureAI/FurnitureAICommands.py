@@ -1,52 +1,127 @@
 """
-Comandi workbench FurnitureAI.
+Comandi workbench FurnitureAI — comportamento allineato all'add-in Fusion.
 """
 
 from __future__ import annotations
 
 import os
+from typing import List, Tuple
 
 import FreeCAD as App
 import FreeCADGui as Gui
 
-from .freecad_geometry import build_cabinet_in_document
+from furniture_core.assembly_spec import cabinet_assembly_label, suggest_module_name
+
+from .freecad_geometry import (
+    add_cabinet_module_to_document,
+    build_cabinet_assembly_in_document,
+)
 from .wizard_dialog import FurnitureWizardDialog
 
 _wb_dir = os.path.dirname(os.path.abspath(__file__))
 _ICON = os.path.join(_wb_dir, "Resources", "icons", "FurnitureAI.svg")
 
 
+def _ensure_document() -> App.Document:
+    doc = App.ActiveDocument
+    if doc is None:
+        doc = App.newDocument("FurnitureAI")
+    return doc
+
+
+def _report_success(assembly_label: str, panel_names: List[str]) -> None:
+    msg = (
+        "Mobile creato con successo.\n\n"
+        "Assieme: {}\n"
+        "Componenti: {}\n\n"
+        "Ogni pannello è un sotto-assieme (come in Fusion)."
+    ).format(assembly_label, ", ".join(panel_names))
+    App.Console.PrintMessage("FurnitureAI: {}\n".format(msg.replace("\n\n", " — ")))
+    try:
+        from PySide2 import QtWidgets
+    except ImportError:
+        from PySide import QtGui as QtWidgets  # type: ignore
+    QtWidgets.QMessageBox.information(Gui.getMainWindow(), "FurnitureAI", msg)
+
+
+def _last_module_layout_x(doc: App.Document) -> float:
+    """Posizione X per il prossimo modulo in fila (cm), stile layout lineare Fusion."""
+    x = 0.0
+    for obj in doc.Objects:
+        if obj.TypeId == "App::Part" and obj.Name.startswith("Modulo_"):
+            placement = obj.Placement.Base
+            # Approssima fine modulo: origine + larghezza non nota → usa solo offset cumulativo
+            x = max(x, placement.x / 10.0 + 80.0)
+    return x
+
+
 class CmdFurnitureWizard:
-    """Apre il wizard e genera il mobile nel documento attivo."""
+    """Crea un assieme mobile (equivalente generate_furniture su Fusion)."""
 
     def GetResources(self):
         return {
             "Pixmap": _ICON,
             "MenuText": "Wizard mobili",
-            "ToolTip": "Crea un mobile parametrico (fianchi, ripiani, schienale)",
+            "ToolTip": "Crea assieme mobile con pannelli come sotto-componenti (stile Fusion)",
         }
 
     def IsActive(self):
-        return App.ActiveDocument is not None
+        return True
 
     def Activated(self):
-        doc = App.ActiveDocument
-        if doc is None:
-            return
         dlg = FurnitureWizardDialog(Gui.getMainWindow())
         if dlg.exec_() != 1:
             return
         params = dlg.get_params()
         if not params:
             return
+        doc = _ensure_document()
         try:
-            part, names = build_cabinet_in_document(doc, params)
-            doc.recompute()
+            asm_name = cabinet_assembly_label(params)
+            mobile, names = build_cabinet_assembly_in_document(doc, params, assembly_name=asm_name)
             Gui.Selection.clearSelection()
-            Gui.Selection.addSelection(doc.Name, part.Name)
-            App.Console.PrintMessage(
-                "FurnitureAI: creati {} pannelli in '{}'\n".format(len(names), part.Label)
+            Gui.Selection.addSelection(doc.Name, mobile.Name)
+            _report_success(mobile.Label, names)
+        except Exception as exc:
+            App.Console.PrintError("FurnitureAI: {}\n".format(exc))
+
+    def GetClassName(self):
+        return "Gui::Command"
+
+
+class CmdAddModule:
+    """Aggiunge un modulo mobile posizionato (equivalente ModularProject.add_cabinet_module)."""
+
+    def GetResources(self):
+        return {
+            "Pixmap": _ICON,
+            "MenuText": "Aggiungi modulo",
+            "ToolTip": "Aggiunge un altro mobile come assieme posizionato (layout modulare)",
+        }
+
+    def IsActive(self):
+        return True
+
+    def Activated(self):
+        dlg = FurnitureWizardDialog(Gui.getMainWindow())
+        dlg.setWindowTitle("FurnitureAI — Nuovo modulo")
+        if dlg.exec_() != 1:
+            return
+        params = dlg.get_params()
+        if not params:
+            return
+        doc = _ensure_document()
+        try:
+            existing = [o.Name for o in doc.Objects]
+            mod_name = suggest_module_name(existing)
+            pos_x = _last_module_layout_x(doc)
+            position: Tuple[float, float, float] = (pos_x, 0.0, 0.0)
+            mobile, names = add_cabinet_module_to_document(
+                doc, params, position_cm=position, module_name=mod_name
             )
+            Gui.Selection.clearSelection()
+            Gui.Selection.addSelection(doc.Name, mobile.Name)
+            _report_success(mobile.Label, names)
         except Exception as exc:
             App.Console.PrintError("FurnitureAI: {}\n".format(exc))
 
@@ -104,7 +179,7 @@ class CmdExportXilog:
 
 
 class CmdExportCutlist:
-    """Esporta lista taglio CSV dal wizard (ultima generazione manuale)."""
+    """Esporta lista taglio CSV dai parametri wizard."""
 
     def GetResources(self):
         return {
@@ -114,10 +189,13 @@ class CmdExportCutlist:
         }
 
     def IsActive(self):
-        return App.ActiveDocument is not None
+        return True
 
     def Activated(self):
-        from PySide2 import QtWidgets
+        try:
+            from PySide2 import QtWidgets
+        except ImportError:
+            from PySide import QtGui as QtWidgets  # type: ignore
 
         dlg = FurnitureWizardDialog(Gui.getMainWindow())
         dlg.setWindowTitle("FurnitureAI — Lista taglio")
@@ -150,10 +228,21 @@ class CmdExportCutlist:
 
 COMMAND_LIST = [
     "FurnitureAI_Wizard",
+    "FurnitureAI_AddModule",
     "FurnitureAI_Cutlist",
     "FurnitureAI_Xilog",
 ]
 
-Gui.addCommand("FurnitureAI_Wizard", CmdFurnitureWizard())
-Gui.addCommand("FurnitureAI_Cutlist", CmdExportCutlist())
-Gui.addCommand("FurnitureAI_Xilog", CmdExportXilog())
+_commands_registered = False
+
+
+def register_commands() -> None:
+    """Registra comandi GUI (chiamare da Workbench.Initialize)."""
+    global _commands_registered
+    if _commands_registered:
+        return
+    Gui.addCommand("FurnitureAI_Wizard", CmdFurnitureWizard())
+    Gui.addCommand("FurnitureAI_AddModule", CmdAddModule())
+    Gui.addCommand("FurnitureAI_Cutlist", CmdExportCutlist())
+    Gui.addCommand("FurnitureAI_Xilog", CmdExportXilog())
+    _commands_registered = True

@@ -30,12 +30,21 @@ Copia l'intera cartella `Furniture-ai` in:
 
 ## Utilizzo
 
-1. Crea un nuovo documento.
-2. Workbench **FurnitureAI** → **Wizard mobili**.
-3. Imposta dimensioni o incolla una descrizione testuale → **Applica descrizione**.
-4. **OK** per generare pannelli (Part) raggruppati in `Mobile_FurnitureAI`.
-5. **Lista taglio** esporta CSV dalla stessa logica di `furniture_core`.
-6. **Export Xilog** genera un file `.xilog` multi-pannello per SCM Record 130TV (spinatura e fori 32 mm se attivi nel wizard).
+1. Workbench **FurnitureAI** → **Wizard mobili** (crea il documento se assente).
+2. Imposta dimensioni o incolla una descrizione testuale → **Applica descrizione**.
+3. **OK** → assieme mobile con **un sotto-assieme per pannello** (come Fusion: Component + corpi nominati).
+4. **Aggiungi modulo** → secondo mobile in fila (`Modulo_1`, `Modulo_2`, …) come layout modulare Fusion.
+5. **Lista taglio** → CSV da `furniture_core`.
+6. **Export Xilog** → file `.xilog` per SCM Record 130TV.
+
+**Albero modello (esempio):**
+```text
+Mobile_Base
+├── Fianco_SX → Solido
+├── Fianco_DX → Solido
+├── Base → Solido
+└── …
+```
 
 ## Struttura
 
@@ -52,3 +61,26 @@ Furniture-ai/
 
 - Serve l'intera repository in `Mod/`, non solo la sottocartella `freecad_addon`, perché `furniture_core` è alla root.
 - Il post-processore Xilog resta utilizzabile da script Python come in Fusion (`examples/generate_examples.py`).
+- **FreeCAD 1.0** è supportato (testato con 1.0.2). FreeCAD 1.1 consigliato per sviluppo futuro.
+
+## Risoluzione problemi
+
+### Workbench "FurnitureAI" non compare
+
+1. Verificare il collegamento in `%APPDATA%\FreeCAD\Mod\Furniture-ai` (deve contenere `InitGui.py` nella root).
+2. Riavviare FreeCAD completamente.
+3. Aprire **Report view** e cercare errori su `Furniture-ai` o `relative import`.
+
+### `ModuleNotFoundError: furniture_core`
+
+Il workbench non è stato caricato. Selezionare prima **Visualizza → Workbench → FurnitureAI**, oppure in console:
+
+```python
+import sys
+sys.path.insert(0, r"C:\Users\xilog\AppData\Roaming\FreeCAD\Mod\Furniture-ai")
+from furniture_core.panel_specs import build_panel_specs
+```
+
+### Errori all'avvio da altri addon
+
+In `Mod\` possono esserci addon di terze parti (es. `sheetmetal`, `InventorLoader`). Per isolare FurnitureAI, rinominare temporaneamente le altre cartelle in `Mod\_disabilitato\`.

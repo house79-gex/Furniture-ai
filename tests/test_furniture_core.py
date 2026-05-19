@@ -14,8 +14,9 @@ if _REPO_ROOT not in sys.path:
 from furniture_core.models import default_params_for_type, normalize_params
 from furniture_core.validation import validate_cabinet_params
 from furniture_core.parser_nl import parse_description
-from furniture_core.panel_specs import build_panel_specs
+from furniture_core.panel_specs import build_panel_specs, _schienale_position_y
 from furniture_core.cutlist import export_csv, panels_to_cutlist
+from furniture_core.assembly_spec import build_cabinet_assembly_spec
 
 
 class TestFurnitureCore(unittest.TestCase):
@@ -44,6 +45,23 @@ class TestFurnitureCore(unittest.TestCase):
         panels = build_panel_specs(p)
         # 4 base + 2 ripiani + schienale + zoccolo = 8
         self.assertEqual(len(panels), 8)
+
+    def test_assembly_spec(self):
+        spec = build_cabinet_assembly_spec(normalize_params({"tipo_mobile": "Mobile Base"}))
+        self.assertEqual(spec["assembly_name"], "Mobile_Base")
+        self.assertEqual(len(spec["panels"]), 8)
+
+    def test_schienale_arretrato(self):
+        p = normalize_params(
+            {
+                "tipo_schienale": "Arretrato custom",
+                "arretramento_schienale": 1.0,
+                "profondita": 60,
+                "spessore_schienale": 0.6,
+            }
+        )
+        y = _schienale_position_y(p, 60, 1.8, 0.6)
+        self.assertAlmostEqual(y, 60 - 0.6 - 1.0)
 
     def test_cutlist_export(self):
         panels = build_panel_specs(normalize_params({}))

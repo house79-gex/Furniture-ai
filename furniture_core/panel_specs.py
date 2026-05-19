@@ -9,6 +9,18 @@ from typing import Any, Dict, List
 from .models import normalize_params
 
 
+def _schienale_position_y(params: Dict[str, Any], P: float, S: float, Ss: float) -> float:
+    """Coordinata Y anteriore del schienale (cm), allineata ai tipi wizard Fusion."""
+    tipo = params.get("tipo_schienale", "A filo dietro")
+    if tipo == "Arretrato custom":
+        arr = float(params.get("arretramento_schienale", 0.8))
+        return P - Ss - arr
+    if "Incastrato" in str(tipo):
+        # Scanalatura standard 10 mm nel fianco
+        return P - S - Ss
+    return P - Ss
+
+
 def _box(name: str, sx: float, sy: float, sz: float, x: float, y: float, z: float) -> Dict[str, Any]:
     return {
         "name": name,
@@ -48,8 +60,9 @@ def build_panel_specs(raw_params: Dict[str, Any]) -> List[Dict[str, Any]]:
             z_pos = S + interasse * (i + 1)
             panels.append(_box(f"Ripiano_{i + 1}", L - 2 * S, P, S, S, 0, z_pos))
 
-    # Schienale (pannello sottile sul retro)
-    panels.append(_box("Schienale", L - 2 * S, Ss, H - 2 * S, S, P - Ss, S))
+    # Schienale (posizione Y in base al montaggio, come wizard Fusion)
+    y_schienale = _schienale_position_y(params, P, S, Ss)
+    panels.append(_box("Schienale", L - 2 * S, Ss, H - 2 * S, S, y_schienale, S))
 
     if params.get("con_zoccolo"):
         Hz = float(params.get("altezza_zoccolo", 10.0))
