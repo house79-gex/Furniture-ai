@@ -3,7 +3,7 @@
 > **Scopo:** handoff per continuare il lavoro su un altro PC o in una nuova sessione agente.  
 > **Ultimo aggiornamento:** 2026-05-19  
 > **Repository:** https://github.com/house79-gex/Furniture-ai  
-> **Branch principale:** `main` (dopo push: vedere `git log -1`)
+> **Branch principale:** `main` (commit di riferimento: `41630d7`)
 
 ---
 
@@ -193,7 +193,7 @@ FreeCAD 1.0.2+ sul PC utente, rispondi in italiano.
 
 - Branch: `main`
 - Remote: `origin` → `https://github.com/house79-gex/Furniture-ai.git`
-- Ultima milestone: allineamento assiemi FreeCAD + fix workbench (2026-05-19)
+- Ultima milestone: `41630d7` — allineamento assiemi FreeCAD + fix workbench (2026-05-19)
 
 ---
 
