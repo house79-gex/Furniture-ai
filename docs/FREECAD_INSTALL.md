@@ -32,7 +32,7 @@ Copia l'intera cartella `Furniture-ai` in:
 
 1. Workbench **FurnitureAI** → **Wizard mobili** (crea il documento se assente).
 2. Imposta dimensioni o incolla una descrizione testuale → **Applica descrizione**.
-3. **OK** → assieme mobile con **un sotto-assieme per pannello** (come Fusion: Component + corpi nominati).
+3. **OK** → assieme mobile con **Fondo/Cielo tra i fianchi**, ripiani arretrati, **ante** se impostate, un sotto-assieme per pannello.
 4. **Aggiungi modulo** → secondo mobile in fila (`Modulo_1`, `Modulo_2`, …) come layout modulare Fusion.
 5. **Lista taglio** → CSV da `furniture_core`.
 6. **Export Xilog** → file `.xilog` per SCM Record 130TV.

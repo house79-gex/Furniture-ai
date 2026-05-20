@@ -15,6 +15,8 @@ from furniture_core.models import FURNITURE_TYPES, default_params_for_type
 from furniture_core.parser_nl import parse_description
 from furniture_core.validation import validate_cabinet_params
 from furniture_core.models import normalize_params
+from furniture_core.constants import DEFAULT_DOOR_THICKNESS_CM, SHELF_FRONT_SETBACK_CM, GROOVE_OFFSET_CM
+from .ui_style import apply_wizard_style
 
 SCHIENALE_TYPES = [
     "A filo dietro",
@@ -29,9 +31,10 @@ class FurnitureWizardDialog(QtWidgets.QDialog):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setWindowTitle("FurnitureAI — Wizard mobili")
-        self.resize(450, 620)
+        self.resize(480, 680)
         self._result_params: Optional[Dict[str, Any]] = None
         self._build_ui()
+        apply_wizard_style(self)
 
     def _build_ui(self) -> None:
         scroll = QtWidgets.QScrollArea()
@@ -97,9 +100,19 @@ class FurnitureWizardDialog(QtWidgets.QDialog):
         self.spin_ante.setRange(0, 10)
         self.spin_cassetti = QtWidgets.QSpinBox()
         self.spin_cassetti.setRange(0, 10)
+        self.spin_sp_anta = self._spin(DEFAULT_DOOR_THICKNESS_CM, 1.0, 4.0, step=0.1)
         la.addRow("N. ante", self.spin_ante)
         la.addRow("N. cassetti", self.spin_cassetti)
+        la.addRow("Spessore anta (cm)", self.spin_sp_anta)
         layout.addWidget(g_ante)
+
+        g_rip = QtWidgets.QGroupBox("Ripiani — arretramenti")
+        lr = QtWidgets.QFormLayout(g_rip)
+        self.spin_setback = self._spin(SHELF_FRONT_SETBACK_CM, 0, 5, step=0.1)
+        self.spin_groove = self._spin(GROOVE_OFFSET_CM, 0, 3, step=0.1)
+        lr.addRow("Arretramento fronte (cm)", self.spin_setback)
+        lr.addRow("Scanalatura retro (cm)", self.spin_groove)
+        layout.addWidget(g_rip)
 
         # --- Schienale ---
         g_sch = QtWidgets.QGroupBox("Schienale")
@@ -211,6 +224,9 @@ class FurnitureWizardDialog(QtWidgets.QDialog):
                 "num_cerniere": self.spin_cerniere.value(),
                 "num_ante": self.spin_ante.value(),
                 "num_cassetti": self.spin_cassetti.value(),
+                "spessore_anta": self.spin_sp_anta.value(),
+                "shelf_front_setback": self.spin_setback.value(),
+                "groove_offset_cm": self.spin_groove.value(),
                 "tipo_schienale": self.combo_schienale.currentText(),
                 "arretramento_schienale": self.spin_arretramento.value(),
                 "con_zoccolo": self.chk_zoccolo.isChecked(),

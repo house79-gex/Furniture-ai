@@ -1,9 +1,9 @@
-# AGENT_RECAP — FurnitureAI
+# AGENT_RECAP — FurnitureAI (solo FreeCAD)
 
 > **Scopo:** handoff per continuare il lavoro su un altro PC o in una nuova sessione agente.  
 > **Ultimo aggiornamento:** 2026-05-19  
 > **Repository:** https://github.com/house79-gex/Furniture-ai  
-> **Branch principale:** `main` (commit di riferimento: `41630d7`)
+> **Riferimento Fusion avanzato:** https://github.com/house79-gex/FurnitureAI-Professional.git (non in questo repo)
 
 ---
 
@@ -11,148 +11,100 @@
 
 | Aspetto | Dettaglio |
 |---------|-----------|
-| **Uso** | Personale (falegnameria / mobili semplici) |
-| **CAD attuale** | Fusion 360 (esperto); **FreeCAD 1.0.2** installato e workbench funzionante |
-| **Obiettivo** | FreeCAD come piattaforma principale; Fusion in manutenzione |
-| **CNC** | SCM Record 130TV (NUM 1050), post-processore **Xilog Plus** |
-| **Linguaggio UI** | Italiano |
-| **PC sviluppo** | Windows; repo locale anche in `Documents\github copilot\Furniture-ai` |
-| **Install FreeCAD** | Junction: `%APPDATA%\FreeCAD\Mod\Furniture-ai` → cartella clone repo |
+| **Uso** | Personale — falegnameria |
+| **CAD** | **FreeCAD 1.0.2+** (workbench principale) |
+| **Fusion** | Solo in repo **FurnitureAI-Professional** (separato) |
+| **CNC** | SCM Record 130TV, post-processore **Xilog Plus** |
+| **Install Mod** | Junction `%APPDATA%\FreeCAD\Mod\Furniture-ai` → clone repo |
 
 ---
 
-## Decisioni architetturali (non invertire senza motivo)
+## Decisioni architetturali
 
-1. **`furniture_core/`** = unico cervello condiviso (parametri, validazione, parser, `panel_specs`, `assembly_spec`, cutlist, Xilog). **Nessuna** dipendenza da `adsk` / `FreeCAD`.
-2. **`freecad_addon/FurnitureAI/`** = destinazione principale nuove feature; comportamento **allineato a Fusion** (assiemi, wizard, moduli).
-3. **`fusion_addin/`** = manutenzione; geometria ancora in `furniture_generator.py` (da unificare a `panel_specs`).
-4. **Struttura FreeCAD** = `App::Part` mobile → `App::Part` per pannello → `Part::Feature` solido (equivalente Component + corpi nominati Fusion).
-5. **Non** refactorare `WoodWorkingWizard/` senza richiesta esplicita.
+1. **Questo repo = solo FreeCAD** — rimossi `fusion_addin/`, `WoodWorkingWizard/`, doc legacy Fusion.
+2. **`furniture_core/`** = unica fonte geometrica (`panel_specs.py` allineato a Professional `cabinet_generator`).
+3. **Assiemi FreeCAD** = `App::Part` mobile → `App::Part` per pannello → `Part::Feature` solido.
+4. **Coordinate (cm):** origine basso-sinistra-**anteriore**; X=larghezza, Y=profondità (0=fronte), Z=altezza.
+5. **Professional** va consultato per feature future (fori PartDesign, profili DXF ante, layout L/griglia).
 
 ---
 
-## Struttura repository (aggiornata)
+## Regole geometriche implementate
+
+| Elemento | Regola |
+|----------|--------|
+| **Fondo / Cielo** | Larghezza `L − 2S`, tra i fianchi; profondità piena `P` |
+| **Ripiani** | Larghezza `L − 2S`; arretramento fronte default **0,3 cm** (3 mm); profondità `P − inset_retro − Ss − setback_fronte` |
+| **Schienale** | `A filo` / `Incastrato` (scanalatura 1 cm) / `Arretrato custom` |
+| **Ante** | Se `num_ante > 0`: pannelli `Anta_1…N` davanti (`y < 0`), giochi e spessore anta configurabili |
+| **Zoccolo** | Larghezza interna `L − 2S` |
+
+File: `furniture_core/panel_specs.py`, costanti in `furniture_core/constants.py`.
+
+---
+
+## Struttura repository
 
 ```text
 Furniture-ai/
 ├── furniture_core/
-│   ├── models.py, validation.py, parser_nl.py
-│   ├── panel_specs.py      # geometria logica pannelli (cm)
-│   ├── assembly_spec.py    # nome assieme, moduli, wrap panel_specs
-│   ├── cutlist.py, xilog_export.py
-├── freecad_addon/
-│   ├── __init__.py
-│   └── FurnitureAI/
-│       ├── InitGui.py, FurnitureAICommands.py
-│       ├── wizard_dialog.py    # UI allineata Fusion
-│       └── freecad_geometry.py # assiemi FreeCAD
-├── InitGui.py              # shim Mod/ (fix __file__ + import package)
-├── fusion_addin/
+├── freecad_addon/FurnitureAI/
+│   ├── FurnitureAICommands.py
+│   ├── wizard_dialog.py      # UI scura stile Professional
+│   ├── ui_style.py
+│   ├── freecad_geometry.py
+│   └── Resources/icons/FurnitureAI.svg
 ├── postprocessor/, tlg_parser/
+├── InitGui.py                # shim Mod/ (__file__ + inspect fallback)
+├── tests/
+│   ├── test_furniture_core.py  # 11 test
+│   └── test_xilog_export.py
 └── docs/
-    ├── AGENT_RECAP.md      # questo file
-    └── FREECAD_INSTALL.md
+    ├── AGENT_RECAP.md
+    ├── FREECAD_INSTALL.md
+    └── XILOG_EXPORT.md
 ```
 
 ---
 
-## Sessione 2026-05-19 — completato
-
-### Fix installazione FreeCAD
-
-| Problema | Soluzione |
-|----------|-----------|
-| `furniture_core` non importabile | Junction `Mod\Furniture-ai` → repo completo |
-| `relative import` / workbench assente | `InitGui.py` root: `importlib.import_module("FurnitureAI.InitGui")` + `__init__.py` |
-| `name '__file__' is not defined` | Fallback `inspect.stack()` in `InitGui.py` (root e workbench) |
-
-**CAD testato:** FreeCAD **1.0.2** (non solo 1.1). Workbench visibile dopo fix.
-
-### Allineamento Fusion → FreeCAD
-
-| Fusion | FreeCAD (ora) |
-|--------|----------------|
-| Component + corpi `Fianco_SX`, … | `App::Part` mobile + sotto-assiemi pannello |
-| `ModularProject.add_cabinet_module` | Comando **Aggiungi modulo** (`FurnitureAI_AddModule`) |
-| Wizard (32mm, fori, ante, schienale, zoccolo) | `wizard_dialog.py` stessi gruppi |
-| Posizione schienale per tipo montaggio | `panel_specs._schienale_position_y()` |
-
-### Comandi workbench
+## Comandi workbench
 
 | Comando | ID |
 |---------|-----|
-| Wizard mobili | `FurnitureAI_Wizard` |
-| Aggiungi modulo | `FurnitureAI_AddModule` |
-| Lista taglio | `FurnitureAI_Cutlist` |
-| Export Xilog | `FurnitureAI_Xilog` |
+| 🪑 Wizard mobili | `FurnitureAI_Wizard` |
+| 📦 Aggiungi modulo | `FurnitureAI_AddModule` |
+| 📋 Lista taglio | `FurnitureAI_Cutlist` |
+| ⚙ Export Xilog | `FurnitureAI_Xilog` |
 
-### Test (senza CAD)
+---
+
+## Test
 
 ```powershell
-cd Furniture-ai
 python -m unittest tests.test_furniture_core tests.test_xilog_export -v
 ```
 
-Attesi: **10 test OK** (inclusi `assembly_spec`, schienale arretrato).
+Attesi: **13 test OK**.
 
 ---
 
-## Installazione FreeCAD (Windows)
-
-```powershell
-git clone https://github.com/house79-gex/Furniture-ai.git C:\CAD\Furniture-ai
-New-Item -ItemType Directory -Force -Path "$env:APPDATA\FreeCAD\Mod"
-cmd /c mklink /J "%APPDATA%\FreeCAD\Mod\Furniture-ai" "C:\CAD\Furniture-ai"
-```
-
-Riavviare FreeCAD → **Visualizza → Workbench → FurnitureAI**.
-
-Dettagli e troubleshooting: `docs/FREECAD_INSTALL.md`
-
-### Verifica rapida in console FreeCAD
-
-Dopo aver selezionato workbench **FurnitureAI**:
-
-```python
-from furniture_core.panel_specs import build_panel_specs
-print(len(build_panel_specs({"tipo": "Mobile Base", "larghezza": 80, "altezza": 90, "profondita": 60})))
-# Atteso: 8
-```
-
----
-
-## Limitazioni note
+## Limitazioni / prossimi passi
 
 | Area | Stato |
 |------|--------|
-| Fori 3D (32mm, spinatura, cerniere) | Flag wizard sì; geometria **no** (Fusion e FreeCAD) |
-| Ante / cassetti 3D | Parametri sì; geometria **no** |
-| Layout modulare FreeCAD | Solo fila lineare (`Modulo_N`); Fusion ha anche griglia/L |
-| Materiali FreeCAD | Non implementati |
-| `furniture_generator.py` Fusion | Non ancora usa solo `panel_specs` |
-| `ai_client` | Solo in `fusion_addin/lib/` |
+| Ante | Box semplici con giochi; **no** profili DXF / bugna (c’è in Professional) |
+| Fori 32 mm / spinatura | Flag wizard; **no** geometria fori |
+| Cassetti | Parametro; **no** geometria |
+| Layout modulare | Solo fila X; Professional ha L/griglia |
+| Materiali | Non implementati |
+| Icone PNG multi-size | Solo SVG + emoji menu (PNG Professional non nel clone) |
 
----
+### Roadmap priorità alta
 
-## Roadmap — prossime sessioni
-
-### Priorità alta
-
-1. [ ] **Fori PartDesign** su FreeCAD (Hole + pattern da regole in `furniture_core`)
-2. [ ] **Ante e cassetti** in `panel_specs` + `freecad_geometry`
-3. [ ] **Refactor Fusion** `furniture_generator` → loop su `build_panel_specs` (una fonte geometrica)
-4. [ ] Layout modulare **griglia / L** in FreeCAD (portare logica da `modular_system.py`)
-
-### Priorità media
-
-5. [ ] Spostare parser/AI fallback in `furniture_core`
-6. [ ] Export Xilog per singolo pannello selezionato
-7. [ ] Upgrade/test su **FreeCAD 1.1** quando disponibile
-
-### Manutenzione
-
-8. [ ] Verificare repo **privato** (`docs/REPO_PRIVATO.md`)
-9. [ ] Materiali FreeCAD (opzionale)
+1. [ ] Fori PartDesign da `furniture_core` (regole hardware)
+2. [ ] Portare logica ante avanzata da Professional (`door_designer`, profili DXF)
+3. [ ] Layout modulare griglia/L
+4. [ ] Icone PNG 16/32/64 per comando (come `resources/icons/icone.md` in Professional)
 
 ---
 
@@ -160,41 +112,32 @@ print(len(build_panel_specs({"tipo": "Mobile Base", "larghezza": 80, "altezza": 
 
 | File | Ruolo |
 |------|--------|
-| `furniture_core/panel_specs.py` | Posizioni/dimensioni pannelli (cm) |
-| `furniture_core/assembly_spec.py` | Nomi assieme e moduli |
-| `freecad_addon/FurnitureAI/freecad_geometry.py` | Creazione assiemi FreeCAD |
+| `furniture_core/panel_specs.py` | **Fonte verità** geometria pannelli |
+| `furniture_core/constants.py` | Default mm→cm (setback, giochi ante) |
+| `freecad_addon/FurnitureAI/freecad_geometry.py` | Assiemi FreeCAD |
 | `freecad_addon/FurnitureAI/wizard_dialog.py` | UI wizard |
-| `InitGui.py` (root repo) | Entry point Mod/ — **non rompere `__file__` fallback** |
-| `fusion_addin/lib/furniture_wizard.py` | Riferimento UI Fusion |
-| `fusion_addin/lib/modular_system.py` | Riferimento layout modulare Fusion |
+| `InitGui.py` | Entry Mod — non rompere fallback `__file__` |
 
 ---
 
-## Convenzioni
+## Installazione rapida
 
-- Commenti/doc utente: **italiano**; codice: **inglese**
-- Unità wizard: **cm**; FreeCAD interno: **mm** (`× 10`)
-- Commit: solo su richiesta utente
-- Aggiornare **questo file** a ogni milestone
+```powershell
+git clone https://github.com/house79-gex/Furniture-ai.git
+cmd /c mklink /J "%APPDATA%\FreeCAD\Mod\Furniture-ai" "C:\percorso\Furniture-ai"
+```
+
+Riavviare FreeCAD → Workbench **FurnitureAI**.
 
 ---
 
 ## Prompt per riprendere
 
 ```text
-Leggi docs/AGENT_RECAP.md nel repo Furniture-ai.
-Continua dalla roadmap (es. fori PartDesign su FreeCAD).
-FreeCAD 1.0.2+ sul PC utente, rispondi in italiano.
+Leggi docs/AGENT_RECAP.md. Repo solo FreeCAD; Professional è repo separato.
+Continua roadmap (fori PartDesign o ante DXF). Rispondi in italiano.
 ```
 
 ---
 
-## Stato git
-
-- Branch: `main`
-- Remote: `origin` → `https://github.com/house79-gex/Furniture-ai.git`
-- Ultima milestone: `41630d7` — allineamento assiemi FreeCAD + fix workbench (2026-05-19)
-
----
-
-*Fine recap — aggiornare a ogni milestone significativa.*
+*Aggiornare a ogni milestone.*

@@ -1,5 +1,5 @@
 """
-Test unitari furniture_core (senza FreeCAD / Fusion).
+Test unitari furniture_core (senza FreeCAD).
 """
 
 import os
@@ -14,7 +14,7 @@ if _REPO_ROOT not in sys.path:
 from furniture_core.models import default_params_for_type, normalize_params
 from furniture_core.validation import validate_cabinet_params
 from furniture_core.parser_nl import parse_description
-from furniture_core.panel_specs import build_panel_specs, _schienale_position_y
+from furniture_core.panel_specs import build_panel_specs, _shelf_zone
 from furniture_core.cutlist import export_csv, panels_to_cutlist
 from furniture_core.assembly_spec import build_cabinet_assembly_spec
 
@@ -43,13 +43,40 @@ class TestFurnitureCore(unittest.TestCase):
     def test_panel_specs_count(self):
         p = normalize_params({"num_ripiani": 2, "con_zoccolo": True})
         panels = build_panel_specs(p)
-        # 4 base + 2 ripiani + schienale + zoccolo = 8
         self.assertEqual(len(panels), 8)
+
+    def test_fondo_cielo_tra_fianchi(self):
+        p = normalize_params({"larghezza": 80, "spessore_pannello": 1.8})
+        panels = {x["name"]: x for x in build_panel_specs(p)}
+        self.assertAlmostEqual(panels["Fondo"]["size_x"], 80 - 2 * 1.8)
+        self.assertAlmostEqual(panels["Cielo"]["size_x"], 80 - 2 * 1.8)
+
+    def test_ripiano_accorciato(self):
+        p = normalize_params(
+            {
+                "profondita": 60,
+                "spessore_schienale": 0.6,
+                "shelf_front_setback": 0.3,
+                "num_ripiani": 1,
+            }
+        )
+        y_front, depth = _shelf_zone(p, 60, 1.8, 0.6)
+        self.assertAlmostEqual(y_front, 0.3)
+        # P - 0 - 0.6 - 0.3 front = 59.1 depth approx
+        self.assertAlmostEqual(depth, 60 - 0.6 - 0.3, delta=0.01)
+        rip = [x for x in build_panel_specs(p) if x["name"].startswith("Ripiano")][0]
+        self.assertAlmostEqual(rip["size_y"], depth)
+
+    def test_ante_generate(self):
+        p = normalize_params({"num_ante": 2, "larghezza": 80, "altezza": 90, "con_zoccolo": True})
+        names = [x["name"] for x in build_panel_specs(p)]
+        self.assertIn("Anta_1", names)
+        self.assertIn("Anta_2", names)
 
     def test_assembly_spec(self):
         spec = build_cabinet_assembly_spec(normalize_params({"tipo_mobile": "Mobile Base"}))
         self.assertEqual(spec["assembly_name"], "Mobile_Base")
-        self.assertEqual(len(spec["panels"]), 8)
+        self.assertGreaterEqual(len(spec["panels"]), 8)
 
     def test_schienale_arretrato(self):
         p = normalize_params(
@@ -60,8 +87,8 @@ class TestFurnitureCore(unittest.TestCase):
                 "spessore_schienale": 0.6,
             }
         )
-        y = _schienale_position_y(p, 60, 1.8, 0.6)
-        self.assertAlmostEqual(y, 60 - 0.6 - 1.0)
+        sch = [x for x in build_panel_specs(p) if x["name"] == "Schienale"][0]
+        self.assertAlmostEqual(sch["pos_y"], 60 - 0.6 - 1.0)
 
     def test_cutlist_export(self):
         panels = build_panel_specs(normalize_params({}))

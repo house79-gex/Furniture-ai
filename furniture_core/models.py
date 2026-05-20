@@ -68,6 +68,9 @@ _BASE_DEFAULTS: Dict[str, Any] = {
     "num_cassetti": 0,
     "tipo_schienale": "A filo dietro",
     "arretramento_schienale": 0.8,
+    "groove_offset_cm": 1.0,
+    "shelf_front_setback": 0.3,
+    "spessore_anta": 1.8,
     "con_zoccolo": True,
     "altezza_zoccolo": 10.0,
 }
@@ -97,6 +100,9 @@ def normalize_params(raw: Dict[str, Any]) -> Dict[str, Any]:
         "spessore_schienale",
         "altezza_zoccolo",
         "arretramento_schienale",
+        "groove_offset_cm",
+        "shelf_front_setback",
+        "spessore_anta",
     ):
         if key in params and params[key] is not None:
             params[key] = float(params[key])

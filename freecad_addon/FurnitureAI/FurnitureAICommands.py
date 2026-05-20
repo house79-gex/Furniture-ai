@@ -61,8 +61,8 @@ class CmdFurnitureWizard:
     def GetResources(self):
         return {
             "Pixmap": _ICON,
-            "MenuText": "Wizard mobili",
-            "ToolTip": "Crea assieme mobile con pannelli come sotto-componenti (stile Fusion)",
+            "MenuText": "🪑 Wizard mobili",
+            "ToolTip": "Crea carcassa + ante (Fondo/Cielo tra fianchi, ripiani arretrati)",
         }
 
     def IsActive(self):
@@ -95,7 +95,7 @@ class CmdAddModule:
     def GetResources(self):
         return {
             "Pixmap": _ICON,
-            "MenuText": "Aggiungi modulo",
+            "MenuText": "📦 Aggiungi modulo",
             "ToolTip": "Aggiunge un altro mobile come assieme posizionato (layout modulare)",
         }
 
@@ -135,7 +135,7 @@ class CmdExportXilog:
     def GetResources(self):
         return {
             "Pixmap": _ICON,
-            "MenuText": "Export Xilog",
+            "MenuText": "⚙ Export Xilog",
             "ToolTip": "Genera file .xilog (Xilog Plus) dai parametri wizard",
         }
 
@@ -184,7 +184,7 @@ class CmdExportCutlist:
     def GetResources(self):
         return {
             "Pixmap": _ICON,
-            "MenuText": "Lista taglio",
+            "MenuText": "📋 Lista taglio",
             "ToolTip": "Esporta lista taglio CSV dai parametri wizard",
         }
 
