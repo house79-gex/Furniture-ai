@@ -174,7 +174,7 @@ class FurnitureWizardDialog(QtWidgets.QDialog):
         self.spin_h.setValue(defaults["altezza"])
         self.spin_p.setValue(defaults["profondita"])
         self.spin_ripiani.setValue(defaults["num_ripiani"])
-        self.chk_zoccolo.setChecked(bool(defaults.get("con_zoccolo", False))
+        self.chk_zoccolo.setChecked(bool(defaults.get("con_zoccolo", False)))
 
     def _on_parse_description(self) -> None:
         text = self.edit_desc.toPlainText().strip()
