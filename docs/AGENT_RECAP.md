@@ -2,6 +2,7 @@
 
 > **Scopo:** handoff per continuare il lavoro su un altro PC o in una nuova sessione agente.  
 > **Ultimo aggiornamento:** 2026-05-19  
+> **Commit di riferimento:** `c11422d`  
 > **Repository:** https://github.com/house79-gex/Furniture-ai  
 > **Riferimento Fusion avanzato:** https://github.com/house79-gex/FurnitureAI-Professional.git (non in questo repo)
 
